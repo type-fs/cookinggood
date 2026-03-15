@@ -14,7 +14,15 @@ Kochabend is a single-page web app for a small private group to organise weekly 
 
 ## Firebase data model
 
-All data lives in Firebase Realtime Database under three top-level keys.
+All data lives in Firebase Realtime Database under four top-level keys.
+
+**`/allowedUsers/{uid}`**
+
+A presence map of UIDs permitted to use the app. Managed manually in the Firebase console. The app checks this node on every auth state change and signs the user out if their UID is missing.
+
+| field | type | description |
+|---|---|---|
+| *(value)* | `true` | Presence flag — UID must exist here for the user to access the app |
 
 **`/users/{uid}`**
 
@@ -55,7 +63,7 @@ Firebase presence maps (`{ uid: true }`) are used instead of arrays to avoid ind
 
 ## Auth model
 
-Google Sign-In via Firebase popup. All users who can sign in with any Google account can access the app. Access restriction (if needed in future) would be implemented via Firebase database rules checking a whitelist. Currently the rules require only `auth != null`.
+Google Sign-In via Firebase popup. After successful sign-in, the app checks `/allowedUsers/{uid}` in the Realtime Database. If the UID is not present, the user is signed out immediately and shown a "not on the guest list" message. This is enforced client-side on every auth state change. For full server-side enforcement, Firebase database rules should also check that `auth.uid` exists in `/allowedUsers`.
 
 Firebase config values (API key, auth domain, database URL, project ID) are stored in `localStorage` under `kochabend_firebase_cfg`. They are not secret — Firebase API keys identify the project, they do not grant access. Auth is enforced server-side by Firebase rules.
 
@@ -76,7 +84,6 @@ On first load, if no Firebase config is found in `localStorage`, a setup modal a
 
 These are known limitations to address before treating this as production-grade.
 
-- **Open registration.** Any Google account can sign in. There is no invite or allowlist mechanism. This is acceptable for a closed friend group using a non-publicised URL, but is not formally enforced.
 - **No offline support.** Firebase Realtime Database has offline capabilities, but they are not configured. The app requires a connection to function.
 - **No error boundaries.** Failed Firebase writes show a toast but do not retry or queue.
 - **No pagination.** All records render in one pass. Acceptable for small groups over a reasonable time horizon.
