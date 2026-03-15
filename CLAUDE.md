@@ -65,7 +65,7 @@ Firebase presence maps (`{ uid: true }`) are used instead of arrays to avoid ind
 
 Google Sign-In via Firebase popup. After successful sign-in, the app checks `/allowedUsers/{uid}` in the Realtime Database. If the UID is not present, the user is signed out immediately and shown a "not on the guest list" message. This is enforced client-side on every auth state change. For full server-side enforcement, Firebase database rules should also check that `auth.uid` exists in `/allowedUsers`.
 
-Firebase config values (API key, auth domain, database URL, project ID) are stored in `localStorage` under `kochabend_firebase_cfg`. They are not secret — Firebase API keys identify the project, they do not grant access. Auth is enforced server-side by Firebase rules.
+The Firebase config is hardcoded as `FIREBASE_CFG` in the script block and is intentionally public. Firebase API keys only identify the project — they do not grant access. All authorization is enforced server-side by Firebase Authentication and database rules.
 
 ## Application state
 
@@ -78,7 +78,7 @@ State is held in a module-level `state` object: `{ events: {}, dishes: {}, users
 
 ## Setup flow
 
-On first load, if no Firebase config is found in `localStorage`, a setup modal appears asking for the four Firebase config values. On subsequent loads, the config is read from `localStorage` and Firebase is initialised immediately.
+The Firebase config is hardcoded in the script block. On load, Firebase is initialised immediately and the user sees the Google Sign-In screen.
 
 ## Prototype properties
 
@@ -87,8 +87,6 @@ These are known limitations to address before treating this as production-grade.
 - **No offline support.** Firebase Realtime Database has offline capabilities, but they are not configured. The app requires a connection to function.
 - **No error boundaries.** Failed Firebase writes show a toast but do not retry or queue.
 - **No pagination.** All records render in one pass. Acceptable for small groups over a reasonable time horizon.
-- **Config in localStorage.** The Firebase config is not sensitive, but a compromised device exposes the project identity. Not a meaningful attack surface given Firebase rules require auth.
-
 ## Production requirements
 
 - Firebase project with Google Authentication enabled.

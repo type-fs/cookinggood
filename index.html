@@ -225,7 +225,7 @@
       background: var(--cream); color: var(--ink); outline: none; cursor: pointer;
     }
 
-    /* ── SETUP MODAL ── */
+    /* ── MODALS ── */
     .modal-overlay { position: fixed; inset: 0; background: rgba(42,31,23,0.65); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
     .modal-overlay.hidden { display: none; }
     .modal {
@@ -306,27 +306,6 @@
   </div>
 </div>
 
-<!-- Firebase setup modal -->
-<div class="modal-overlay hidden" id="setup-modal">
-  <div class="modal">
-    <h2>Connect Firebase</h2>
-    <p>This app uses Firebase for real-time data and Google login. You need to create a free Firebase project once.</p>
-    <ol>
-      <li>Go to <strong>console.firebase.google.com</strong> and create a project.</li>
-      <li>Enable <strong>Authentication → Google</strong> as a sign-in provider.</li>
-      <li>Enable <strong>Realtime Database</strong> and set rules to require auth (see README).</li>
-      <li>Go to <strong>Project settings → Your apps → Add web app</strong> and copy the config values below.</li>
-    </ol>
-    <div class="form-group"><label>API Key</label><input type="text" id="cfg-apiKey" placeholder="AIzaSy…" /></div>
-    <div class="form-group"><label>Auth Domain</label><input type="text" id="cfg-authDomain" placeholder="your-project.firebaseapp.com" /></div>
-    <div class="form-group"><label>Database URL</label><input type="text" id="cfg-databaseURL" placeholder="https://your-project-default-rtdb.firebaseio.com" /></div>
-    <div class="form-group"><label>Project ID</label><input type="text" id="cfg-projectId" placeholder="your-project-id" /></div>
-    <div class="mt-16 gap-8">
-      <button class="btn btn-primary" onclick="saveFirebaseCfg()">Save & Connect</button>
-    </div>
-  </div>
-</div>
-
 <!-- Add Event modal -->
 <div class="modal-overlay hidden" id="add-event-modal">
   <div class="modal">
@@ -403,22 +382,11 @@ let currentUser = null;
 let state = { events: {}, dishes: {}, users: {} };
 
 // ── CONFIG ──
-function loadCfg() {
-  const s = localStorage.getItem('kochabend_firebase_cfg');
-  return s ? JSON.parse(s) : null;
-}
-
-window.saveFirebaseCfg = function() {
-  const cfg = {
-    apiKey:      document.getElementById('cfg-apiKey').value.trim(),
-    authDomain:  document.getElementById('cfg-authDomain').value.trim(),
-    databaseURL: document.getElementById('cfg-databaseURL').value.trim(),
-    projectId:   document.getElementById('cfg-projectId').value.trim(),
-  };
-  if (Object.values(cfg).some(v => !v)) { showToast('Please fill in all fields.'); return; }
-  localStorage.setItem('kochabend_firebase_cfg', JSON.stringify(cfg));
-  document.getElementById('setup-modal').classList.add('hidden');
-  boot(cfg);
+const FIREBASE_CFG = {
+  apiKey:      "__FIREBASE_API_KEY__",
+  authDomain:  "__FIREBASE_AUTH_DOMAIN__",
+  databaseURL: "__FIREBASE_DATABASE_URL__",
+  projectId:   "__FIREBASE_PROJECT_ID__",
 };
 
 function boot(cfg) {
@@ -449,9 +417,8 @@ function boot(cfg) {
       }
     });
   } catch(e) {
-    showToast('Firebase error. Check your config.');
+    showToast('Firebase error.');
     console.error(e);
-    document.getElementById('setup-modal').classList.remove('hidden');
     document.getElementById('loading-screen').classList.add('hidden');
   }
 }
@@ -693,11 +660,6 @@ window.changeDishStatus    = (id, s)  => update(ref(db,`dishes/${id}`), { status
 window.assignDishToEvent   = (id, ev) => update(ref(db,`dishes/${id}`), { eventId: ev || null });
 window.setApprovedDish     = (ev, id) => update(ref(db,`events/${ev}`), { approvedDishId: id || null });
 
-window.resetCfg = () => {
-  localStorage.removeItem('kochabend_firebase_cfg');
-  location.reload();
-};
-
 // ── TOAST ──
 let toastTimer;
 function showToast(msg) {
@@ -710,13 +672,7 @@ function showToast(msg) {
 window.showToast = showToast;
 
 // ── BOOT ──
-const cfg = loadCfg();
-if (cfg) {
-  boot(cfg);
-} else {
-  document.getElementById('loading-screen').classList.add('hidden');
-  document.getElementById('setup-modal').classList.remove('hidden');
-}
+boot(FIREBASE_CFG);
 </script>
 </body>
 </html>
