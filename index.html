@@ -256,6 +256,24 @@
     .gap-8 { display: flex; gap: 8px; flex-wrap: wrap; }
     .text-muted { color: var(--muted); font-size: 13px; }
 
+    /* ── EXPAND TOGGLE ── */
+    .expand-toggle {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      font-size: 13px; font-weight: 600; color: var(--muted); margin: 24px 0 12px;
+      background: none; border: none; font-family: 'Nunito', sans-serif; padding: 0;
+    }
+    .expand-toggle:hover { color: var(--terracotta); }
+    .expand-toggle .arrow { transition: transform 0.2s; display: inline-block; }
+    .expand-toggle.open .arrow { transform: rotate(90deg); }
+    .expand-content { display: none; }
+    .expand-content.open { display: block; }
+
+    /* ── ACTION BAR ── */
+    .action-bar { margin-bottom: 20px; }
+
+    /* ── EVENT CARD ── */
+    .event-card-grid { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: start; }
+
     @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeUp   { from { opacity: 0; transform: translateY(16px);  } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin     { to { transform: rotate(360deg); } }
@@ -309,6 +327,35 @@
   </div>
 </div>
 
+<!-- Add Event modal -->
+<div class="modal-overlay hidden" id="add-event-modal">
+  <div class="modal">
+    <h2>Add Event</h2>
+    <p>Pick a date for the next cooking evening.</p>
+    <div class="form-group"><label>Date</label><input type="date" id="new-event-date" /></div>
+    <div class="mt-16 gap-8">
+      <button class="btn btn-primary" onclick="addEvent()">Add Event</button>
+      <button class="btn btn-secondary" onclick="closeModal('add-event-modal')" style="margin-left:8px">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Suggest Dish modal -->
+<div class="modal-overlay hidden" id="suggest-dish-modal">
+  <div class="modal">
+    <h2>Suggest a Dish</h2>
+    <p>Propose something delicious for the group.</p>
+    <div class="form-group"><label>Dish name</label><input type="text" id="new-dish-name" placeholder="e.g. Pasta e Fagioli" /></div>
+    <div class="form-group"><label>Recipe link (optional)</label><input type="url" id="new-dish-url" placeholder="https://…" /></div>
+    <div class="form-group"><label>Ingredients (optional)</label><textarea id="new-dish-ingredients" placeholder="List ingredients…" style="min-height:60px"></textarea></div>
+    <div class="form-group"><label>Recipe text (optional)</label><textarea id="new-dish-text" placeholder="Steps, notes…"></textarea></div>
+    <div class="mt-16 gap-8">
+      <button class="btn btn-primary" onclick="addDish()">Suggest Dish</button>
+      <button class="btn btn-secondary" onclick="closeModal('suggest-dish-modal')" style="margin-left:8px">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Main app -->
 <div id="main-app" style="display:none">
   <div class="app">
@@ -327,23 +374,15 @@
     </header>
 
     <nav>
-      <button class="active" data-view="next" onclick="switchView('next')">Next Evening</button>
-      <button data-view="vote" onclick="switchView('vote')">Vote</button>
-      <button data-view="history" onclick="switchView('history')">History</button>
-      <button data-view="manage" onclick="switchView('manage')">Manage</button>
+      <button class="active" data-view="events" onclick="switchView('events')">Events</button>
+      <button data-view="dishes" onclick="switchView('dishes')">Dishes</button>
     </nav>
 
-    <div class="view active" id="view-next">
-      <div id="next-content"><div class="empty"><div class="icon">🍳</div><p>Loading…</p></div></div>
+    <div class="view active" id="view-events">
+      <div id="events-content"><div class="empty"><div class="icon">📅</div><p>Loading…</p></div></div>
     </div>
-    <div class="view" id="view-vote">
-      <div id="vote-content"><div class="empty"><div class="icon">🗳️</div><p>Loading…</p></div></div>
-    </div>
-    <div class="view" id="view-history">
-      <div id="history-content"><div class="empty"><div class="icon">📖</div><p>Loading…</p></div></div>
-    </div>
-    <div class="view" id="view-manage">
-      <div id="manage-content"><div class="empty"><div class="icon">⚙️</div><p>Loading…</p></div></div>
+    <div class="view" id="view-dishes">
+      <div id="dishes-content"><div class="empty"><div class="icon">🍽️</div><p>Loading…</p></div></div>
     </div>
   </div>
 </div>
@@ -466,93 +505,136 @@ const fmtDate = d => new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday
 const fmtShort = d => new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
 
 // ── RENDER ALL ──
-function renderAll() { renderNext(); renderVote(); renderHistory(); renderManage(); }
+function renderAll() { renderEvents(); renderDishes(); }
 
-// ── NEXT ──
-function renderNext() {
-  const el = document.getElementById('next-content');
+// ── EVENTS TAB ──
+function renderEvents() {
+  const el = document.getElementById('events-content');
   const upcoming = evArr().filter(e => e.date >= today()).sort((a,b) => a.date.localeCompare(b.date));
-  if (!upcoming.length) {
-    el.innerHTML = `<div class="empty"><div class="icon">📅</div><p>No upcoming evenings yet. Add one in Manage.</p></div>`;
+  const past = evArr().filter(e => e.date < today()).sort((a,b) => b.date.localeCompare(a.date));
+
+  let html = `<div class="action-bar"><button class="btn btn-primary" onclick="openModal('add-event-modal')">+ Add Event</button></div>`;
+
+  if (!upcoming.length && !past.length) {
+    html += `<div class="empty"><div class="icon">📅</div><p>No events yet. Create the first one!</p></div>`;
+    el.innerHTML = html;
     return;
   }
-  const next = upcoming[0];
-  const dish = next.approvedDishId ? state.dishes[next.approvedDishId] : null;
-  const attendees = next.attendees ? Object.keys(next.attendees) : [];
-  const myRsvp = attendees.includes(currentUser.uid);
-  const chips = attendees.map(uid => `<span class="rsvp-chip">${avatar(uid,20)} ${esc(uName(uid))}</span>`).join('');
 
-  el.innerHTML = `
-    <div class="next-hero">
-      <div class="eyebrow">Next Kochabend</div>
-      <h2>${dish ? esc(dish.name) : 'No dish set yet'}</h2>
-      <div class="dish-sub">${dish ? esc(dish.status) : ''}</div>
-      <div class="date-badge">📅 ${fmtDate(next.date)}</div>
-      <div class="rsvp-section">
-        <div class="rsvp-label">Who's coming (${attendees.length})</div>
-        <div class="rsvp-attendees">${chips || '<span style="color:rgba(255,255,255,0.35);font-size:13px">No one yet</span>'}</div>
-        ${myRsvp
-          ? `<button class="btn btn-sm" style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.2)" onclick="leaveEvent('${next.id}')">You're in ✓ — Leave</button>`
-          : `<button class="btn btn-primary btn-sm" style="background:rgba(255,255,255,0.2);border:none" onclick="joinEvent('${next.id}')">RSVP — I'm coming</button>`}
+  // Upcoming events
+  html += upcoming.map(ev => renderEventCard(ev, true)).join('');
+
+  // Past events (expandable)
+  if (past.length) {
+    html += `
+      <button class="expand-toggle" onclick="toggleExpand(this)">
+        <span class="arrow">&#9654;</span> Past events (${past.length})
+      </button>
+      <div class="expand-content">
+        ${past.map(ev => renderEventCard(ev, false)).join('')}
+      </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderEventCard(ev, isUpcoming) {
+  const dish = ev.approvedDishId ? state.dishes[ev.approvedDishId] : null;
+  const attendees = ev.attendees ? Object.keys(ev.attendees) : [];
+  const myRsvp = currentUser && attendees.includes(currentUser.uid);
+  const dt = new Date(ev.date + 'T12:00:00');
+  const chips = attendees.map(uid => `<span class="rsvp-chip light">${avatar(uid,18)} ${esc(uName(uid))}</span>`).join('');
+
+  return `
+  <div class="card">
+    <div class="event-card-grid">
+      <div class="history-date">
+        <div class="day">${dt.getDate()}</div>
+        <div class="month">${dt.toLocaleDateString('de-DE',{month:'short'})}</div>
+      </div>
+      <div>
+        <div class="card-label">${fmtDate(ev.date)}</div>
+        <h3>${dish ? esc(dish.name) : '<em style="color:var(--muted)">No dish set</em>'}</h3>
+        ${dish?.recipeUrl ? `<a class="recipe-link" href="${esc(dish.recipeUrl)}" target="_blank" rel="noopener">→ Recipe</a>` : ''}
+        ${dish?.ingredients ? `<div class="recipe-text" style="max-height:80px">${esc(dish.ingredients)}</div>` : ''}
+        ${dish?.recipeText ? `<div class="recipe-text" style="max-height:80px">${esc(dish.recipeText)}</div>` : ''}
+        <div class="rsvp-attendees mt-8">${chips || '<span class="text-muted">No attendees yet</span>'}</div>
+        ${isUpcoming ? `<div class="mt-8">${myRsvp
+          ? `<button class="btn btn-secondary btn-sm" onclick="leaveEvent('${ev.id}')">You're in — Leave</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="joinEvent('${ev.id}')">I'm coming</button>`
+        }</div>` : ''}
       </div>
     </div>
-    ${dish && (dish.recipeUrl || dish.recipeText) ? `
-    <div class="card">
-      <div class="card-label">Recipe</div>
-      <h3>${esc(dish.name)}</h3>
-      ${dish.recipeUrl ? `<a class="recipe-link" href="${esc(dish.recipeUrl)}" target="_blank" rel="noopener">→ Open recipe link</a>` : ''}
-      ${dish.recipeText ? `<div class="recipe-text">${esc(dish.recipeText)}</div>` : ''}
-    </div>` : ''}
-    ${upcoming.length > 1 ? `
-    <div class="card">
-      <div class="card-label">Coming up after that</div>
-      ${upcoming.slice(1,4).map(e => {
-        const d = e.approvedDishId ? state.dishes[e.approvedDishId] : null;
-        return `<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--paper)">
-          <span style="font-size:14px">${d ? esc(d.name) : '<em style="color:var(--muted)">TBD</em>'}</span>
-          <span class="text-muted">${fmtShort(e.date)}</span>
-        </div>`;
-      }).join('')}
-    </div>` : ''}`;
+  </div>`;
 }
 
 window.joinEvent  = uid => update(ref(db, `events/${uid}/attendees`), { [currentUser.uid]: true });
 window.leaveEvent = uid => remove(ref(db, `events/${uid}/attendees/${currentUser.uid}`));
 
-// ── VOTE ──
-function renderVote() {
-  const el = document.getElementById('vote-content');
-  const candidates = dsArr()
-    .filter(d => d.status === 'suggested' || d.status === 'approved')
+// ── DISHES TAB ──
+function renderDishes() {
+  const el = document.getElementById('dishes-content');
+  const all = dsArr();
+  const suggested = all.filter(d => d.status === 'suggested' || d.status === 'approved')
     .sort((a,b) => Object.keys(b.votes||{}).length - Object.keys(a.votes||{}).length);
+  const cooked = all.filter(d => d.status === 'cooked');
+  const discarded = all.filter(d => d.status === 'discarded');
 
-  if (!candidates.length) {
-    el.innerHTML = `<div class="empty"><div class="icon">🗳️</div><p>No dishes to vote on yet. Suggest one in Manage.</p></div>`;
+  let html = `<div class="action-bar"><button class="btn btn-primary" onclick="openModal('suggest-dish-modal')">+ Suggest Dish</button></div>`;
+
+  if (!all.length) {
+    html += `<div class="empty"><div class="icon">🍽️</div><p>No dishes yet. Suggest the first one!</p></div>`;
+    el.innerHTML = html;
     return;
   }
 
-  el.innerHTML = candidates.map(d => {
-    const votes = d.votes ? Object.keys(d.votes) : [];
-    const hasVoted = votes.includes(currentUser.uid);
-    const voterAvatars = votes.slice(0,6).map(uid => avatar(uid,22)).join('');
-    return `
-    <div class="card">
-      <div class="dish-card">
-        <div>
-          <div class="card-label">${d.status === 'approved' ? '✓ Approved for next event' : 'Suggested'}</div>
-          <h3>${esc(d.name)}</h3>
-          ${d.recipeUrl ? `<a class="recipe-link" href="${esc(d.recipeUrl)}" target="_blank" rel="noopener">→ Recipe link</a>` : ''}
-          ${d.recipeText ? `<div class="recipe-text">${esc(d.recipeText)}</div>` : ''}
-          <span class="status-pill status-${d.status}">${d.status}</span>
-          ${votes.length ? `<div class="voter-avatars mt-8">${voterAvatars}</div>` : ''}
-        </div>
-        <button class="vote-btn ${hasVoted?'voted':''}" onclick="castVote('${d.id}',${hasVoted})">
-          <span class="vote-count">${votes.length}</span>
-          ${hasVoted ? '✓ Voted' : '↑ Vote'}
-        </button>
+  // Suggested / approved dishes with voting
+  html += suggested.map(d => renderDishCard(d, true)).join('');
+
+  // Cooked dishes
+  if (cooked.length) {
+    html += `<div class="section-title" style="margin-top:24px">Cooked</div>`;
+    html += cooked.map(d => renderDishCard(d, false)).join('');
+  }
+
+  // Discarded dishes (expandable)
+  if (discarded.length) {
+    html += `
+      <button class="expand-toggle" onclick="toggleExpand(this)">
+        <span class="arrow">&#9654;</span> Discarded (${discarded.length})
+      </button>
+      <div class="expand-content">
+        ${discarded.map(d => renderDishCard(d, false)).join('')}
+      </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderDishCard(d, showVoting) {
+  const votes = d.votes ? Object.keys(d.votes) : [];
+  const hasVoted = currentUser && votes.includes(currentUser.uid);
+  const voterAvatars = votes.slice(0,6).map(uid => avatar(uid,22)).join('');
+
+  return `
+  <div class="card">
+    <div class="dish-card">
+      <div>
+        <div class="card-label">${d.status === 'approved' ? 'Approved' : d.status === 'suggested' ? 'Suggested' : d.status}</div>
+        <h3>${esc(d.name)}</h3>
+        ${d.recipeUrl ? `<a class="recipe-link" href="${esc(d.recipeUrl)}" target="_blank" rel="noopener">→ Recipe link</a>` : ''}
+        ${d.ingredients ? `<div class="recipe-text" style="max-height:80px">${esc(d.ingredients)}</div>` : ''}
+        ${d.recipeText ? `<div class="recipe-text">${esc(d.recipeText)}</div>` : ''}
+        <span class="status-pill status-${d.status}">${d.status}</span>
+        ${votes.length ? `<div class="voter-avatars mt-8">${voterAvatars}</div>` : ''}
       </div>
-    </div>`;
-  }).join('');
+      ${showVoting ? `
+      <button class="vote-btn ${hasVoted?'voted':''}" onclick="castVote('${d.id}',${hasVoted})">
+        <span class="vote-count">${votes.length}</span>
+        ${hasVoted ? '✓ Voted' : '↑ Vote'}
+      </button>` : ''}
+    </div>
+  </div>`;
 }
 
 window.castVote = async (dishId, hasVoted) => {
@@ -560,103 +642,25 @@ window.castVote = async (dishId, hasVoted) => {
   else          { await update(ref(db, `dishes/${dishId}/votes`), { [currentUser.uid]: true }); }
 };
 
-// ── HISTORY ──
-function renderHistory() {
-  const el = document.getElementById('history-content');
-  const past = evArr().filter(e => e.date < today()).sort((a,b) => b.date.localeCompare(a.date));
-  if (!past.length) {
-    el.innerHTML = `<div class="empty"><div class="icon">📖</div><p>Nothing cooked yet. The story starts soon.</p></div>`;
-    return;
-  }
-  el.innerHTML = past.map(ev => {
-    const dish = ev.approvedDishId ? state.dishes[ev.approvedDishId] : null;
-    const dt   = new Date(ev.date + 'T12:00:00');
-    const atts = ev.attendees ? Object.keys(ev.attendees) : [];
-    const chips = atts.map(uid => `<span class="rsvp-chip light">${avatar(uid,18)} ${esc(uName(uid))}</span>`).join('');
-    return `
-    <div class="card">
-      <div class="history-item">
-        <div class="history-date">
-          <div class="day">${dt.getDate()}</div>
-          <div class="month">${dt.toLocaleDateString('de-DE',{month:'short'})} ${dt.getFullYear()}</div>
-        </div>
-        <div>
-          <h3>${dish ? esc(dish.name) : 'Unknown dish'}</h3>
-          ${dish?.recipeUrl ? `<a class="recipe-link" href="${esc(dish.recipeUrl)}" target="_blank" rel="noopener">→ Recipe</a>` : ''}
-          ${dish?.recipeText ? `<div class="recipe-text" style="max-height:60px">${esc(dish.recipeText)}</div>` : ''}
-          <div class="rsvp-attendees mt-8">${chips}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
+// ── MODALS ──
+window.openModal = id => document.getElementById(id).classList.remove('hidden');
+window.closeModal = id => document.getElementById(id).classList.add('hidden');
 
-// ── MANAGE ──
-function renderManage() {
-  const el = document.getElementById('manage-content');
-  const eventOpts = evArr().sort((a,b)=>a.date.localeCompare(b.date))
-    .map(e=>`<option value="${e.id}">${e.date}</option>`).join('');
+// ── EXPAND TOGGLE ──
+window.toggleExpand = btn => {
+  btn.classList.toggle('open');
+  const content = btn.nextElementSibling;
+  content.classList.toggle('open');
+};
 
-  el.innerHTML = `
-    <div class="section-title">Add a Cooking Event</div>
-    <div class="card">
-      <div class="inline-form">
-        <div class="form-group"><label>Date</label><input type="date" id="new-event-date" /></div>
-        <button class="btn btn-primary" onclick="addEvent()">Add Event</button>
-      </div>
-    </div>
-
-    <div class="section-title">Suggest a Dish</div>
-    <div class="card">
-      <div class="form-group"><label>Dish name</label><input type="text" id="new-dish-name" placeholder="e.g. Pasta e Fagioli" /></div>
-      <div class="form-group"><label>Recipe URL (optional)</label><input type="url" id="new-dish-url" placeholder="https://…" /></div>
-      <div class="form-group"><label>Or paste recipe text</label><textarea id="new-dish-text" placeholder="Ingredients, steps…"></textarea></div>
-      <div class="form-group">
-        <label>Assign to event (optional)</label>
-        <select id="new-dish-event"><option value="">— none —</option>${eventOpts}</select>
-      </div>
-      <button class="btn btn-primary" onclick="addDish()">Suggest Dish</button>
-    </div>
-
-    <div class="section-title">All Dishes</div>
-    <div class="card">
-      ${dsArr().length ? dsArr().map(d => `
-      <div class="dish-manage-row">
-        <span class="name">${esc(d.name)}</span>
-        <select onchange="changeDishStatus('${d.id}',this.value)">
-          ${['suggested','approved','cooked','discarded'].map(s=>
-            `<option value="${s}" ${d.status===s?'selected':''}>${s}</option>`).join('')}
-        </select>
-        <select onchange="assignDishToEvent('${d.id}',this.value)">
-          <option value="">— no event —</option>
-          ${evArr().sort((a,b)=>a.date.localeCompare(b.date)).map(e=>
-            `<option value="${e.id}" ${d.eventId===e.id?'selected':''}>${e.date}</option>`).join('')}
-        </select>
-      </div>`).join('') : '<p class="text-muted">No dishes yet.</p>'}
-    </div>
-
-    <div class="section-title">Set Approved Dish per Event</div>
-    <div class="card">
-      ${evArr().length ? evArr().sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`
-      <div class="dish-manage-row">
-        <span class="name">${e.date} — ${e.attendees ? Object.keys(e.attendees).length : 0} attending</span>
-        <select onchange="setApprovedDish('${e.id}',this.value)">
-          <option value="">— no dish —</option>
-          ${dsArr().map(d=>`<option value="${d.id}" ${e.approvedDishId===d.id?'selected':''}>${esc(d.name)} (${d.status})</option>`).join('')}
-        </select>
-      </div>`).join('') : '<p class="text-muted">No events yet.</p>'}
-    </div>
-
-    <div class="divider"></div>
-    <button class="btn btn-secondary btn-sm" onclick="resetCfg()">Reset Firebase connection</button>
-  `;
-}
-
+// ── WRITE ACTIONS ──
 window.addEvent = async () => {
   const date = document.getElementById('new-event-date').value;
   if (!date) { showToast('Pick a date.'); return; }
   if (evArr().find(e => e.date === date)) { showToast('An event on this date already exists.'); return; }
   await push(ref(db,'events'), { date, attendees: {}, approvedDishId: null, createdBy: currentUser.uid });
+  document.getElementById('new-event-date').value = '';
+  closeModal('add-event-modal');
   showToast('Event added.');
 };
 
@@ -666,13 +670,15 @@ window.addDish = async () => {
   await push(ref(db,'dishes'), {
     name,
     status: 'suggested',
-    recipeUrl:   document.getElementById('new-dish-url').value.trim(),
-    recipeText:  document.getElementById('new-dish-text').value.trim(),
-    eventId:     document.getElementById('new-dish-event').value || null,
-    votes:       {},
-    suggestedBy: currentUser.uid,
+    recipeUrl:    document.getElementById('new-dish-url').value.trim(),
+    ingredients:  document.getElementById('new-dish-ingredients').value.trim(),
+    recipeText:   document.getElementById('new-dish-text').value.trim(),
+    eventId:      null,
+    votes:        {},
+    suggestedBy:  currentUser.uid,
   });
-  ['new-dish-name','new-dish-url','new-dish-text'].forEach(id => document.getElementById(id).value = '');
+  ['new-dish-name','new-dish-url','new-dish-ingredients','new-dish-text'].forEach(id => document.getElementById(id).value = '');
+  closeModal('suggest-dish-modal');
   showToast('Dish suggested.');
 };
 

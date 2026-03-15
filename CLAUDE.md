@@ -46,6 +46,7 @@ A dish suggestion or history entry.
 | `status` | enum | `suggested`, `approved`, `cooked`, `discarded` |
 | `recipeUrl` | string | link to recipe, may be empty |
 | `recipeText` | string | pasted recipe text, may be empty |
+| `ingredients` | string | ingredients list, may be empty |
 | `eventId` | string \| null | push ID of assigned event |
 | `votes` | `{ [uid]: true }` | Firebase presence map of voters |
 | `suggestedBy` | string | uid of suggester |
@@ -64,10 +65,8 @@ State is held in a module-level `state` object: `{ events: {}, dishes: {}, users
 
 ## Views
 
-- **Next Evening** — shows the next upcoming event (date >= today), its approved dish, recipe, and RSVP list with real Google profile photos. RSVP writes to `events/{id}/attendees/{uid}`.
-- **Vote** — lists all dishes with status `suggested` or `approved`, sorted by vote count. Each user can toggle their vote. Vote writes to `dishes/{id}/votes/{uid}`.
-- **History** — lists all past events (date < today) in reverse chronological order with dish, recipe, and attendee photos.
-- **Manage** — create events, suggest dishes, change dish status, assign dishes to events, set the approved dish per event. No separate auth gate since Firebase handles it.
+- **Events** — lists all cooking events. Upcoming events show date, approved dish, attendees, and RSVP join/leave buttons. Past events are hidden under an expandable "Past events" section. An "Add Event" button at the top opens a modal with a date picker.
+- **Dishes** — lists all dishes grouped by status. Suggested/approved dishes appear first with voting (sorted by vote count). Cooked dishes appear next. Discarded dishes are hidden under an expandable section. A "Suggest Dish" button at the top opens a modal for name, recipe link, ingredients, and recipe text.
 
 ## Setup flow
 
