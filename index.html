@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kochabend</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Nunito:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cream:      #f5f0e8;
+      --paper:      #ede6d6;
+      --warm-tan:   #c9b99a;
+      --terracotta: #b5633a;
+      --clay:       #9c4e2a;
+      --olive:      #6b7c4a;
+      --bark:       #3d2b1f;
+      --ink:        #2a1f17;
+      --muted:      #8a7968;
+      --card-bg:    #faf6ef;
+      --shadow:     rgba(61,43,31,0.12);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: var(--cream);
+      color: var(--ink);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 10% 0%, rgba(181,99,58,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse at 90% 100%, rgba(107,124,74,0.06) 0%, transparent 60%);
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px; z-index: 0;
+    }
+
+    .app { position: relative; z-index: 1; max-width: 780px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ── LOADING ── */
+    #loading-screen {
+      position: fixed; inset: 0; background: var(--cream);
+      display: flex; align-items: center; justify-content: center; z-index: 300;
+      transition: opacity 0.4s;
+    }
+    #loading-screen.hidden { opacity: 0; pointer-events: none; }
+    .loading-logo { font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; color: var(--bark); animation: pulse 1.4s ease-in-out infinite; }
+    .loading-logo em { color: var(--terracotta); font-style: italic; }
+
+    /* ── LOGIN ── */
+    .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .login-card {
+      background: var(--card-bg); border-radius: 28px; padding: 48px 40px;
+      max-width: 400px; width: 100%;
+      box-shadow: 0 8px 40px var(--shadow), 0 0 0 1px rgba(201,185,154,0.3);
+      text-align: center; animation: fadeUp 0.5s ease both;
+    }
+    .login-card .logo { font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-weight: 600; color: var(--bark); margin-bottom: 4px; }
+    .login-card .logo em { color: var(--terracotta); font-style: italic; }
+    .login-card .tagline { font-size: 14px; color: var(--muted); margin-bottom: 36px; line-height: 1.6; }
+    .google-btn {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      width: 100%; padding: 14px 24px; border-radius: 14px;
+      border: 1.5px solid var(--warm-tan); background: white;
+      font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600; color: var(--ink);
+      cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px var(--shadow);
+    }
+    .google-btn:hover { border-color: var(--terracotta); box-shadow: 0 4px 16px var(--shadow); transform: translateY(-1px); }
+    .google-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    /* ── HEADER ── */
+    header {
+      padding: 40px 0 24px;
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      animation: fadeDown 0.6s ease both;
+    }
+    .header-title .eyebrow { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .header-title h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.2rem, 5vw, 3.2rem); font-weight: 600; color: var(--bark); line-height: 1.1; }
+    .header-title h1 em { color: var(--terracotta); font-style: italic; }
+    .user-chip {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--card-bg); border: 1.5px solid var(--warm-tan); border-radius: 100px;
+      padding: 6px 14px 6px 8px; cursor: pointer; transition: all 0.2s;
+    }
+    .user-chip:hover { border-color: var(--terracotta); }
+    .user-chip img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+    .user-chip .user-name { font-size: 13px; font-weight: 600; color: var(--ink); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-chip .sign-out-hint { font-size: 11px; color: var(--muted); }
+
+    /* ── NAV ── */
+    nav {
+      display: flex; justify-content: center; gap: 6px; margin: 20px 0 36px; flex-wrap: wrap;
+      animation: fadeDown 0.6s 0.1s ease both;
+    }
+    nav button {
+      font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 600;
+      padding: 8px 20px; border-radius: 100px; border: 1.5px solid var(--warm-tan);
+      background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s;
+    }
+    nav button:hover { border-color: var(--terracotta); color: var(--terracotta); }
+    nav button.active { background: var(--terracotta); border-color: var(--terracotta); color: white; }
+
+    /* ── VIEWS ── */
+    .view { display: none; animation: fadeUp 0.4s ease both; }
+    .view.active { display: block; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card-bg); border-radius: 20px; padding: 28px 32px; margin-bottom: 16px;
+      box-shadow: 0 2px 16px var(--shadow), 0 0 0 1px rgba(201,185,154,0.3); transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: 0 4px 24px var(--shadow), 0 0 0 1px rgba(201,185,154,0.5); }
+    .card-label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .card h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; font-weight: 600; color: var(--bark); line-height: 1.2; }
+    .card h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600; color: var(--bark); }
+    .card p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-top: 6px; }
+
+    /* ── NEXT HERO ── */
+    .next-hero {
+      background: linear-gradient(135deg, #3d2b1f 0%, #6b4230 100%); color: white;
+      border-radius: 24px; padding: 36px 36px 32px; margin-bottom: 16px;
+      box-shadow: 0 8px 32px rgba(61,43,31,0.3); animation: fadeUp 0.5s 0.15s ease both;
+    }
+    .next-hero .eyebrow { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 8px; }
+    .next-hero h2 { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 600; color: white; line-height: 1.1; margin-bottom: 4px; }
+    .next-hero .dish-sub { font-size: 14px; color: rgba(255,255,255,0.55); margin-bottom: 20px; }
+    .next-hero .date-badge {
+      display: inline-block; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 100px; padding: 6px 16px; font-size: 13px; color: rgba(255,255,255,0.85); margin-bottom: 24px;
+    }
+
+    /* ── RSVP ── */
+    .rsvp-section { margin-top: 20px; }
+    .rsvp-label { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
+    .rsvp-attendees { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .rsvp-chip {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 100px; padding: 4px 12px 4px 6px; font-size: 13px; color: rgba(255,255,255,0.85);
+    }
+    .rsvp-chip img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+    .rsvp-chip.light { background: var(--paper); border-color: var(--warm-tan); color: var(--ink); }
+    .rsvp-chip.light img { width: 18px; height: 18px; }
+
+    /* ── VOTE ── */
+    .dish-card { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; }
+    .vote-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: var(--paper); border: 2px solid var(--warm-tan); border-radius: 16px;
+      padding: 12px 16px; cursor: pointer;
+      font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 600; color: var(--muted);
+      transition: all 0.2s; min-width: 64px;
+    }
+    .vote-btn:hover:not(:disabled) { border-color: var(--terracotta); color: var(--terracotta); background: rgba(181,99,58,0.06); }
+    .vote-btn.voted { border-color: var(--olive); color: var(--olive); background: rgba(107,124,74,0.1); }
+    .vote-count { font-size: 22px; font-weight: 300; color: var(--ink); }
+    .voter-avatars { display: flex; margin-top: 8px; }
+    .voter-avatars img { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--card-bg); margin-left: -6px; object-fit: cover; }
+    .voter-avatars img:first-child { margin-left: 0; }
+
+    .status-pill {
+      display: inline-block; padding: 3px 12px; border-radius: 100px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 8px;
+    }
+    .status-suggested { background: rgba(201,185,154,0.3); color: var(--muted); }
+    .status-approved  { background: rgba(107,124,74,0.15); color: var(--olive); }
+    .status-cooked    { background: rgba(61,43,31,0.1); color: var(--bark); }
+    .status-discarded { background: rgba(138,121,104,0.15); color: var(--muted); text-decoration: line-through; }
+
+    .recipe-link { font-size: 13px; color: var(--terracotta); text-decoration: none; margin-top: 4px; display: inline-block; }
+    .recipe-link:hover { text-decoration: underline; }
+    .recipe-text {
+      font-size: 13px; color: var(--muted); background: var(--paper); border-radius: 10px;
+      padding: 10px 14px; margin-top: 8px; line-height: 1.6; max-height: 120px; overflow-y: auto; white-space: pre-wrap;
+    }
+
+    /* ── HISTORY ── */
+    .history-item { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: center; }
+    .history-date { text-align: center; background: var(--paper); border-radius: 12px; padding: 8px 4px; }
+    .history-date .day { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; font-weight: 600; color: var(--bark); line-height: 1; }
+    .history-date .month { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+    /* ── MANAGE ── */
+    .section-title { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 600; color: var(--bark); margin: 32px 0 12px; }
+    .section-title:first-child { margin-top: 0; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%; font-family: 'Nunito', sans-serif; font-size: 14px;
+      padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--warm-tan);
+      background: var(--cream); color: var(--ink); outline: none; transition: border-color 0.2s; appearance: none;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus { border-color: var(--terracotta); }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+
+    .btn {
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 600;
+      padding: 10px 24px; border-radius: 12px; border: none; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--terracotta); color: white; }
+    .btn-primary:hover { background: var(--clay); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(181,99,58,0.3); }
+    .btn-secondary { background: var(--paper); color: var(--ink); border: 1.5px solid var(--warm-tan); }
+    .btn-secondary:hover { border-color: var(--terracotta); color: var(--terracotta); }
+    .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 8px; }
+    .inline-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .inline-form .form-group { flex: 1; min-width: 140px; margin-bottom: 0; }
+
+    .dish-manage-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--paper); flex-wrap: wrap;
+    }
+    .dish-manage-row:last-child { border-bottom: none; }
+    .dish-manage-row .name { flex: 1; font-size: 14px; color: var(--ink); min-width: 120px; }
+    .dish-manage-row select {
+      font-family: 'Nunito', sans-serif; font-size: 12px; padding: 4px 10px;
+      border-radius: 8px; border: 1.5px solid var(--warm-tan);
+      background: var(--cream); color: var(--ink); outline: none; cursor: pointer;
+    }
+
+    /* ── SETUP MODAL ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(42,31,23,0.65); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+    .modal-overlay.hidden { display: none; }
+    .modal {
+      background: var(--card-bg); border-radius: 24px; padding: 36px 32px;
+      max-width: 500px; width: 100%; box-shadow: 0 20px 60px rgba(42,31,23,0.3); animation: fadeUp 0.3s ease both;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: var(--bark); margin-bottom: 8px; }
+    .modal p { font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
+    .modal ol { font-size: 14px; color: var(--muted); line-height: 1.8; padding-left: 20px; margin-bottom: 16px; }
+    .modal code { font-size: 12px; background: var(--paper); padding: 2px 6px; border-radius: 4px; font-family: monospace; color: var(--bark); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: var(--bark); color: white; padding: 12px 24px; border-radius: 100px;
+      font-size: 14px; font-weight: 500; z-index: 200; transition: transform 0.3s ease; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
+    .empty .icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty p { font-size: 14px; }
+    .divider { height: 1px; background: var(--paper); margin: 24px 0; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .mt-8 { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .gap-8 { display: flex; gap: 8px; flex-wrap: wrap; }
+    .text-muted { color: var(--muted); font-size: 13px; }
+
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp   { from { opacity: 0; transform: translateY(16px);  } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin     { to { transform: rotate(360deg); } }
+    @keyframes pulse    { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading-screen">
+  <div class="loading-logo">Koch<em>abend</em></div>
+</div>
+
+<!-- Login -->
+<div id="login-screen" style="display:none">
+  <div class="login-screen">
+    <div class="login-card">
+      <div class="logo">Koch<em>abend</em></div>
+      <div class="tagline">Every week, something delicious.<br>Sign in to join your group.</div>
+      <button class="google-btn" onclick="signInWithGoogle()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase setup modal -->
+<div class="modal-overlay hidden" id="setup-modal">
+  <div class="modal">
+    <h2>Connect Firebase</h2>
+    <p>This app uses Firebase for real-time data and Google login. You need to create a free Firebase project once.</p>
+    <ol>
+      <li>Go to <strong>console.firebase.google.com</strong> and create a project.</li>
+      <li>Enable <strong>Authentication → Google</strong> as a sign-in provider.</li>
+      <li>Enable <strong>Realtime Database</strong> and set rules to require auth (see README).</li>
+      <li>Go to <strong>Project settings → Your apps → Add web app</strong> and copy the config values below.</li>
+    </ol>
+    <div class="form-group"><label>API Key</label><input type="text" id="cfg-apiKey" placeholder="AIzaSy…" /></div>
+    <div class="form-group"><label>Auth Domain</label><input type="text" id="cfg-authDomain" placeholder="your-project.firebaseapp.com" /></div>
+    <div class="form-group"><label>Database URL</label><input type="text" id="cfg-databaseURL" placeholder="https://your-project-default-rtdb.firebaseio.com" /></div>
+    <div class="form-group"><label>Project ID</label><input type="text" id="cfg-projectId" placeholder="your-project-id" /></div>
+    <div class="mt-16 gap-8">
+      <button class="btn btn-primary" onclick="saveFirebaseCfg()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="main-app" style="display:none">
+  <div class="app">
+    <header>
+      <div class="header-title">
+        <div class="eyebrow">every week, something delicious</div>
+        <h1>Koch<em>abend</em></h1>
+      </div>
+      <div class="user-chip" onclick="doSignOut()" title="Click to sign out">
+        <img id="user-avatar" src="" alt="" />
+        <div>
+          <div class="user-name" id="user-display-name"></div>
+          <div class="sign-out-hint">Sign out</div>
+        </div>
+      </div>
+    </header>
+
+    <nav>
+      <button class="active" data-view="next" onclick="switchView('next')">Next Evening</button>
+      <button data-view="vote" onclick="switchView('vote')">Vote</button>
+      <button data-view="history" onclick="switchView('history')">History</button>
+      <button data-view="manage" onclick="switchView('manage')">Manage</button>
+    </nav>
+
+    <div class="view active" id="view-next">
+      <div id="next-content"><div class="empty"><div class="icon">🍳</div><p>Loading…</p></div></div>
+    </div>
+    <div class="view" id="view-vote">
+      <div id="vote-content"><div class="empty"><div class="icon">🗳️</div><p>Loading…</p></div></div>
+    </div>
+    <div class="view" id="view-history">
+      <div id="history-content"><div class="empty"><div class="icon">📖</div><p>Loading…</p></div></div>
+    </div>
+    <div class="view" id="view-manage">
+      <div id="manage-content"><div class="empty"><div class="icon">⚙️</div><p>Loading…</p></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getDatabase, ref, onValue, set, get, update, push, remove }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ── STATE ──
+let fbApp, auth, db;
+let currentUser = null;
+let state = { events: {}, dishes: {}, users: {} };
+
+// ── CONFIG ──
+function loadCfg() {
+  const s = localStorage.getItem('kochabend_firebase_cfg');
+  return s ? JSON.parse(s) : null;
+}
+
+window.saveFirebaseCfg = function() {
+  const cfg = {
+    apiKey:      document.getElementById('cfg-apiKey').value.trim(),
+    authDomain:  document.getElementById('cfg-authDomain').value.trim(),
+    databaseURL: document.getElementById('cfg-databaseURL').value.trim(),
+    projectId:   document.getElementById('cfg-projectId').value.trim(),
+  };
+  if (Object.values(cfg).some(v => !v)) { showToast('Please fill in all fields.'); return; }
+  localStorage.setItem('kochabend_firebase_cfg', JSON.stringify(cfg));
+  document.getElementById('setup-modal').classList.add('hidden');
+  boot(cfg);
+};
+
+function boot(cfg) {
+  try {
+    fbApp = initializeApp(cfg);
+    auth  = getAuth(fbApp);
+    db    = getDatabase(fbApp);
+
+    onAuthStateChanged(auth, async user => {
+      if (user) {
+        currentUser = user;
+        await set(ref(db, `users/${user.uid}`), {
+          displayName: user.displayName,
+          photoURL: user.photoURL || '',
+        });
+        showApp();
+        subscribe();
+      } else {
+        currentUser = null;
+        showLogin();
+      }
+    });
+  } catch(e) {
+    showToast('Firebase error. Check your config.');
+    console.error(e);
+    document.getElementById('setup-modal').classList.remove('hidden');
+    document.getElementById('loading-screen').classList.add('hidden');
+  }
+}
+
+// ── AUTH ──
+window.signInWithGoogle = async function() {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e) { showToast('Sign-in failed.'); console.error(e); }
+};
+
+window.doSignOut = async function() {
+  await fbSignOut(auth);
+};
+
+// ── SCREENS ──
+function showLogin() {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('login-screen').style.display = 'block';
+  document.getElementById('main-app').style.display = 'none';
+}
+function showApp() {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  const first = currentUser.displayName?.split(' ')[0] || 'You';
+  document.getElementById('user-display-name').textContent = first;
+  document.getElementById('user-avatar').src = currentUser.photoURL || '';
+}
+
+window.switchView = function(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+  document.querySelector(`[data-view="${name}"]`).classList.add('active');
+};
+
+// ── SUBSCRIPTIONS ──
+function subscribe() {
+  onValue(ref(db, 'events'), snap => { state.events = snap.val() || {}; renderAll(); });
+  onValue(ref(db, 'dishes'), snap => { state.dishes = snap.val() || {}; renderAll(); });
+  onValue(ref(db, 'users'),  snap => { state.users  = snap.val() || {}; renderAll(); });
+}
+
+// ── HELPERS ──
+const evArr = () => Object.entries(state.events).map(([id,v]) => ({id,...v}));
+const dsArr = () => Object.entries(state.dishes).map(([id,v]) => ({id,...v}));
+const today = () => new Date().toISOString().split('T')[0];
+const esc   = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const uName = uid => state.users[uid]?.displayName || 'Someone';
+const uPhoto = uid => state.users[uid]?.photoURL || '';
+const avatar = (uid, sz=20) => {
+  const p = uPhoto(uid);
+  return p
+    ? `<img src="${esc(p)}" width="${sz}" height="${sz}" alt="${esc(uName(uid))}" title="${esc(uName(uid))}" style="border-radius:50%;object-fit:cover" />`
+    : `<span style="display:inline-flex;align-items:center;justify-content:center;width:${sz}px;height:${sz}px;border-radius:50%;background:var(--warm-tan);font-size:${sz*0.5}px">${esc(uName(uid))[0]||'?'}</span>`;
+};
+const fmtDate = d => new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+const fmtShort = d => new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+
+// ── RENDER ALL ──
+function renderAll() { renderNext(); renderVote(); renderHistory(); renderManage(); }
+
+// ── NEXT ──
+function renderNext() {
+  const el = document.getElementById('next-content');
+  const upcoming = evArr().filter(e => e.date >= today()).sort((a,b) => a.date.localeCompare(b.date));
+  if (!upcoming.length) {
+    el.innerHTML = `<div class="empty"><div class="icon">📅</div><p>No upcoming evenings yet. Add one in Manage.</p></div>`;
+    return;
+  }
+  const next = upcoming[0];
+  const dish = next.approvedDishId ? state.dishes[next.approvedDishId] : null;
+  const attendees = next.attendees ? Object.keys(next.attendees) : [];
+  const myRsvp = attendees.includes(currentUser.uid);
+  const chips = attendees.map(uid => `<span class="rsvp-chip">${avatar(uid,20)} ${esc(uName(uid))}</span>`).join('');
+
+  el.innerHTML = `
+    <div class="next-hero">
+      <div class="eyebrow">Next Kochabend</div>
+      <h2>${dish ? esc(dish.name) : 'No dish set yet'}</h2>
+      <div class="dish-sub">${dish ? esc(dish.status) : ''}</div>
+      <div class="date-badge">📅 ${fmtDate(next.date)}</div>
+      <div class="rsvp-section">
+        <div class="rsvp-label">Who's coming (${attendees.length})</div>
+        <div class="rsvp-attendees">${chips || '<span style="color:rgba(255,255,255,0.35);font-size:13px">No one yet</span>'}</div>
+        ${myRsvp
+          ? `<button class="btn btn-sm" style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.2)" onclick="leaveEvent('${next.id}')">You're in ✓ — Leave</button>`
+          : `<button class="btn btn-primary btn-sm" style="background:rgba(255,255,255,0.2);border:none" onclick="joinEvent('${next.id}')">RSVP — I'm coming</button>`}
+      </div>
+    </div>
+    ${dish && (dish.recipeUrl || dish.recipeText) ? `
+    <div class="card">
+      <div class="card-label">Recipe</div>
+      <h3>${esc(dish.name)}</h3>
+      ${dish.recipeUrl ? `<a class="recipe-link" href="${esc(dish.recipeUrl)}" target="_blank" rel="noopener">→ Open recipe link</a>` : ''}
+      ${dish.recipeText ? `<div class="recipe-text">${esc(dish.recipeText)}</div>` : ''}
+    </div>` : ''}
+    ${upcoming.length > 1 ? `
+    <div class="card">
+      <div class="card-label">Coming up after that</div>
+      ${upcoming.slice(1,4).map(e => {
+        const d = e.approvedDishId ? state.dishes[e.approvedDishId] : null;
+        return `<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--paper)">
+          <span style="font-size:14px">${d ? esc(d.name) : '<em style="color:var(--muted)">TBD</em>'}</span>
+          <span class="text-muted">${fmtShort(e.date)}</span>
+        </div>`;
+      }).join('')}
+    </div>` : ''}`;
+}
+
+window.joinEvent  = uid => update(ref(db, `events/${uid}/attendees`), { [currentUser.uid]: true });
+window.leaveEvent = uid => remove(ref(db, `events/${uid}/attendees/${currentUser.uid}`));
+
+// ── VOTE ──
+function renderVote() {
+  const el = document.getElementById('vote-content');
+  const candidates = dsArr()
+    .filter(d => d.status === 'suggested' || d.status === 'approved')
+    .sort((a,b) => Object.keys(b.votes||{}).length - Object.keys(a.votes||{}).length);
+
+  if (!candidates.length) {
+    el.innerHTML = `<div class="empty"><div class="icon">🗳️</div><p>No dishes to vote on yet. Suggest one in Manage.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = candidates.map(d => {
+    const votes = d.votes ? Object.keys(d.votes) : [];
+    const hasVoted = votes.includes(currentUser.uid);
+    const voterAvatars = votes.slice(0,6).map(uid => avatar(uid,22)).join('');
+    return `
+    <div class="card">
+      <div class="dish-card">
+        <div>
+          <div class="card-label">${d.status === 'approved' ? '✓ Approved for next event' : 'Suggested'}</div>
+          <h3>${esc(d.name)}</h3>
+          ${d.recipeUrl ? `<a class="recipe-link" href="${esc(d.recipeUrl)}" target="_blank" rel="noopener">→ Recipe link</a>` : ''}
+          ${d.recipeText ? `<div class="recipe-text">${esc(d.recipeText)}</div>` : ''}
+          <span class="status-pill status-${d.status}">${d.status}</span>
+          ${votes.length ? `<div class="voter-avatars mt-8">${voterAvatars}</div>` : ''}
+        </div>
+        <button class="vote-btn ${hasVoted?'voted':''}" onclick="castVote('${d.id}',${hasVoted})">
+          <span class="vote-count">${votes.length}</span>
+          ${hasVoted ? '✓ Voted' : '↑ Vote'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.castVote = async (dishId, hasVoted) => {
+  if (hasVoted) { await remove(ref(db, `dishes/${dishId}/votes/${currentUser.uid}`)); }
+  else          { await update(ref(db, `dishes/${dishId}/votes`), { [currentUser.uid]: true }); }
+};
+
+// ── HISTORY ──
+function renderHistory() {
+  const el = document.getElementById('history-content');
+  const past = evArr().filter(e => e.date < today()).sort((a,b) => b.date.localeCompare(a.date));
+  if (!past.length) {
+    el.innerHTML = `<div class="empty"><div class="icon">📖</div><p>Nothing cooked yet. The story starts soon.</p></div>`;
+    return;
+  }
+  el.innerHTML = past.map(ev => {
+    const dish = ev.approvedDishId ? state.dishes[ev.approvedDishId] : null;
+    const dt   = new Date(ev.date + 'T12:00:00');
+    const atts = ev.attendees ? Object.keys(ev.attendees) : [];
+    const chips = atts.map(uid => `<span class="rsvp-chip light">${avatar(uid,18)} ${esc(uName(uid))}</span>`).join('');
+    return `
+    <div class="card">
+      <div class="history-item">
+        <div class="history-date">
+          <div class="day">${dt.getDate()}</div>
+          <div class="month">${dt.toLocaleDateString('de-DE',{month:'short'})} ${dt.getFullYear()}</div>
+        </div>
+        <div>
+          <h3>${dish ? esc(dish.name) : 'Unknown dish'}</h3>
+          ${dish?.recipeUrl ? `<a class="recipe-link" href="${esc(dish.recipeUrl)}" target="_blank" rel="noopener">→ Recipe</a>` : ''}
+          ${dish?.recipeText ? `<div class="recipe-text" style="max-height:60px">${esc(dish.recipeText)}</div>` : ''}
+          <div class="rsvp-attendees mt-8">${chips}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MANAGE ──
+function renderManage() {
+  const el = document.getElementById('manage-content');
+  const eventOpts = evArr().sort((a,b)=>a.date.localeCompare(b.date))
+    .map(e=>`<option value="${e.id}">${e.date}</option>`).join('');
+
+  el.innerHTML = `
+    <div class="section-title">Add a Cooking Event</div>
+    <div class="card">
+      <div class="inline-form">
+        <div class="form-group"><label>Date</label><input type="date" id="new-event-date" /></div>
+        <button class="btn btn-primary" onclick="addEvent()">Add Event</button>
+      </div>
+    </div>
+
+    <div class="section-title">Suggest a Dish</div>
+    <div class="card">
+      <div class="form-group"><label>Dish name</label><input type="text" id="new-dish-name" placeholder="e.g. Pasta e Fagioli" /></div>
+      <div class="form-group"><label>Recipe URL (optional)</label><input type="url" id="new-dish-url" placeholder="https://…" /></div>
+      <div class="form-group"><label>Or paste recipe text</label><textarea id="new-dish-text" placeholder="Ingredients, steps…"></textarea></div>
+      <div class="form-group">
+        <label>Assign to event (optional)</label>
+        <select id="new-dish-event"><option value="">— none —</option>${eventOpts}</select>
+      </div>
+      <button class="btn btn-primary" onclick="addDish()">Suggest Dish</button>
+    </div>
+
+    <div class="section-title">All Dishes</div>
+    <div class="card">
+      ${dsArr().length ? dsArr().map(d => `
+      <div class="dish-manage-row">
+        <span class="name">${esc(d.name)}</span>
+        <select onchange="changeDishStatus('${d.id}',this.value)">
+          ${['suggested','approved','cooked','discarded'].map(s=>
+            `<option value="${s}" ${d.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <select onchange="assignDishToEvent('${d.id}',this.value)">
+          <option value="">— no event —</option>
+          ${evArr().sort((a,b)=>a.date.localeCompare(b.date)).map(e=>
+            `<option value="${e.id}" ${d.eventId===e.id?'selected':''}>${e.date}</option>`).join('')}
+        </select>
+      </div>`).join('') : '<p class="text-muted">No dishes yet.</p>'}
+    </div>
+
+    <div class="section-title">Set Approved Dish per Event</div>
+    <div class="card">
+      ${evArr().length ? evArr().sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`
+      <div class="dish-manage-row">
+        <span class="name">${e.date} — ${e.attendees ? Object.keys(e.attendees).length : 0} attending</span>
+        <select onchange="setApprovedDish('${e.id}',this.value)">
+          <option value="">— no dish —</option>
+          ${dsArr().map(d=>`<option value="${d.id}" ${e.approvedDishId===d.id?'selected':''}>${esc(d.name)} (${d.status})</option>`).join('')}
+        </select>
+      </div>`).join('') : '<p class="text-muted">No events yet.</p>'}
+    </div>
+
+    <div class="divider"></div>
+    <button class="btn btn-secondary btn-sm" onclick="resetCfg()">Reset Firebase connection</button>
+  `;
+}
+
+window.addEvent = async () => {
+  const date = document.getElementById('new-event-date').value;
+  if (!date) { showToast('Pick a date.'); return; }
+  if (evArr().find(e => e.date === date)) { showToast('An event on this date already exists.'); return; }
+  await push(ref(db,'events'), { date, attendees: {}, approvedDishId: null, createdBy: currentUser.uid });
+  showToast('Event added.');
+};
+
+window.addDish = async () => {
+  const name = document.getElementById('new-dish-name').value.trim();
+  if (!name) { showToast('Enter a dish name.'); return; }
+  await push(ref(db,'dishes'), {
+    name,
+    status: 'suggested',
+    recipeUrl:   document.getElementById('new-dish-url').value.trim(),
+    recipeText:  document.getElementById('new-dish-text').value.trim(),
+    eventId:     document.getElementById('new-dish-event').value || null,
+    votes:       {},
+    suggestedBy: currentUser.uid,
+  });
+  ['new-dish-name','new-dish-url','new-dish-text'].forEach(id => document.getElementById(id).value = '');
+  showToast('Dish suggested.');
+};
+
+window.changeDishStatus    = (id, s)  => update(ref(db,`dishes/${id}`), { status: s });
+window.assignDishToEvent   = (id, ev) => update(ref(db,`dishes/${id}`), { eventId: ev || null });
+window.setApprovedDish     = (ev, id) => update(ref(db,`events/${ev}`), { approvedDishId: id || null });
+
+window.resetCfg = () => {
+  localStorage.removeItem('kochabend_firebase_cfg');
+  location.reload();
+};
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+window.showToast = showToast;
+
+// ── BOOT ──
+const cfg = loadCfg();
+if (cfg) {
+  boot(cfg);
+} else {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('setup-modal').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
