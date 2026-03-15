@@ -319,17 +319,17 @@
   </div>
 </div>
 
-<!-- Suggest Dish modal -->
-<div class="modal-overlay hidden" id="suggest-dish-modal">
-  <div class="modal">
-    <h2>Suggest a Dish</h2>
+<!-- Suggest / Edit Dish modal -->
+<div class="modal-overlay hidden" id="suggest-dish-modal" onclick="closeModal('suggest-dish-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2 id="dish-modal-title">Suggest a Dish</h2>
     <p>Propose something delicious for the group.</p>
     <div class="form-group"><label>Dish name</label><input type="text" id="new-dish-name" placeholder="e.g. Pasta e Fagioli" /></div>
     <div class="form-group"><label>Recipe link (optional)</label><input type="url" id="new-dish-url" placeholder="https://…" /></div>
     <div class="form-group"><label>Ingredients (optional)</label><textarea id="new-dish-ingredients" placeholder="List ingredients…" style="min-height:60px"></textarea></div>
     <div class="form-group"><label>Recipe text (optional)</label><textarea id="new-dish-text" placeholder="Steps, notes…"></textarea></div>
     <div class="mt-16 gap-8">
-      <button class="btn btn-primary" onclick="addDish()">Suggest Dish</button>
+      <button class="btn btn-primary" id="dish-modal-submit" onclick="saveDish()">Suggest Dish</button>
       <button class="btn btn-secondary" onclick="closeModal('suggest-dish-modal')" style="margin-left:8px">Cancel</button>
     </div>
   </div>
@@ -380,6 +380,7 @@ import { getDatabase, ref, onValue, set, get, update, push, remove }
 let fbApp, auth, db;
 let currentUser = null;
 let state = { events: {}, dishes: {}, users: {} };
+let editingDishId = null;
 
 // ── CONFIG ──
 const FIREBASE_CFG = {
@@ -554,7 +555,7 @@ function renderDishes() {
   const cooked = all.filter(d => d.status === 'cooked');
   const discarded = all.filter(d => d.status === 'discarded');
 
-  let html = `<div class="action-bar"><button class="btn btn-primary" onclick="openModal('suggest-dish-modal')">+ Suggest Dish</button></div>`;
+  let html = `<div class="action-bar"><button class="btn btn-primary" onclick="openSuggestDish()">+ Suggest Dish</button></div>`;
 
   if (!all.length) {
     html += `<div class="empty"><div class="icon">🍽️</div><p>No dishes yet. Suggest the first one!</p></div>`;
@@ -601,6 +602,7 @@ function renderDishCard(d, showVoting) {
         ${d.recipeText ? `<div class="recipe-text">${esc(d.recipeText)}</div>` : ''}
         <span class="status-pill status-${d.status}">${d.status}</span>
         ${votes.length ? `<div class="voter-avatars mt-8">${voterAvatars}</div>` : ''}
+        <div class="mt-8"><button class="btn btn-secondary btn-sm" onclick="openEditDish('${d.id}')">Edit</button></div>
       </div>
       ${showVoting ? `
       <button class="vote-btn ${hasVoted?'voted':''}" onclick="castVote('${d.id}',${hasVoted})">
@@ -618,7 +620,31 @@ window.castVote = async (dishId, hasVoted) => {
 
 // ── MODALS ──
 window.openModal = id => document.getElementById(id).classList.remove('hidden');
-window.closeModal = id => document.getElementById(id).classList.add('hidden');
+window.closeModal = id => {
+  document.getElementById(id).classList.add('hidden');
+  if (id === 'suggest-dish-modal') editingDishId = null;
+};
+
+window.openSuggestDish = () => {
+  editingDishId = null;
+  ['new-dish-name','new-dish-url','new-dish-ingredients','new-dish-text'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('dish-modal-title').textContent = 'Suggest a Dish';
+  document.getElementById('dish-modal-submit').textContent = 'Suggest Dish';
+  openModal('suggest-dish-modal');
+};
+
+window.openEditDish = id => {
+  const d = state.dishes[id];
+  if (!d) return;
+  editingDishId = id;
+  document.getElementById('new-dish-name').value = d.name || '';
+  document.getElementById('new-dish-url').value = d.recipeUrl || '';
+  document.getElementById('new-dish-ingredients').value = d.ingredients || '';
+  document.getElementById('new-dish-text').value = d.recipeText || '';
+  document.getElementById('dish-modal-title').textContent = 'Edit Dish';
+  document.getElementById('dish-modal-submit').textContent = 'Update';
+  openModal('suggest-dish-modal');
+};
 
 // ── EXPAND TOGGLE ──
 window.toggleExpand = btn => {
@@ -638,22 +664,30 @@ window.addEvent = async () => {
   showToast('Event added.');
 };
 
-window.addDish = async () => {
+window.saveDish = async () => {
   const name = document.getElementById('new-dish-name').value.trim();
   if (!name) { showToast('Enter a dish name.'); return; }
-  await push(ref(db,'dishes'), {
+  const fields = {
     name,
-    status: 'suggested',
-    recipeUrl:    document.getElementById('new-dish-url').value.trim(),
-    ingredients:  document.getElementById('new-dish-ingredients').value.trim(),
-    recipeText:   document.getElementById('new-dish-text').value.trim(),
-    eventId:      null,
-    votes:        {},
-    suggestedBy:  currentUser.uid,
-  });
+    recipeUrl:   document.getElementById('new-dish-url').value.trim(),
+    ingredients: document.getElementById('new-dish-ingredients').value.trim(),
+    recipeText:  document.getElementById('new-dish-text').value.trim(),
+  };
+  if (editingDishId) {
+    await update(ref(db, `dishes/${editingDishId}`), fields);
+    showToast('Dish updated.');
+  } else {
+    await push(ref(db,'dishes'), {
+      ...fields,
+      status: 'suggested',
+      eventId: null,
+      votes: {},
+      suggestedBy: currentUser.uid,
+    });
+    showToast('Dish suggested.');
+  }
   ['new-dish-name','new-dish-url','new-dish-ingredients','new-dish-text'].forEach(id => document.getElementById(id).value = '');
   closeModal('suggest-dish-modal');
-  showToast('Dish suggested.');
 };
 
 window.changeDishStatus    = (id, s)  => update(ref(db,`dishes/${id}`), { status: s });
