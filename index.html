@@ -279,6 +279,25 @@
     .expand-content { display: none; }
     .expand-content.open { display: block; }
 
+    /* ── DELETE ── */
+    .delete-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer; padding: 4px;
+      color: var(--muted); transition: color 0.2s; margin-left: auto;
+    }
+    .delete-btn:hover { color: var(--terracotta); }
+    .delete-btn svg { width: 16px; height: 16px; }
+    .delete-confirm {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: var(--terracotta); margin-left: auto;
+    }
+    .delete-confirm .btn-danger {
+      background: var(--terracotta); color: white; border: none;
+      font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 600;
+      padding: 4px 10px; border-radius: 6px; cursor: pointer;
+    }
+    .delete-confirm .btn-danger:hover { background: var(--clay); }
+
     /* ── ACTION BAR ── */
     .action-bar { margin-bottom: 20px; }
 
@@ -483,6 +502,7 @@ function subscribe() {
 }
 
 // ── HELPERS ──
+const trashIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 const evArr = () => Object.entries(state.events).map(([id,v]) => ({id,...v}));
 const dsArr = () => Object.entries(state.dishes).map(([id,v]) => ({id,...v}));
 const today = () => new Date().toISOString().split('T')[0];
@@ -591,6 +611,7 @@ function renderEventCard(ev, isUpcoming) {
             : `<button class="btn btn-primary btn-sm" onclick="joinEvent('${ev.id}')">I'm coming</button>`
           }` : ''}
           <button class="btn btn-secondary btn-sm" onclick="openEditEvent('${ev.id}')">Edit</button>
+          <button class="delete-btn" onclick="confirmDelete('event','${ev.id}',this)" title="Delete event">${trashIcon}</button>
         </div>
       </div>
     </div>
@@ -678,6 +699,7 @@ function renderDishCard(d, showVoting, action) {
         <div class="mt-8 gap-8">
           <button class="btn btn-secondary btn-sm" onclick="openEditDish('${d.id}')">Edit</button>
           ${actionBtn}
+          <button class="delete-btn" onclick="confirmDelete('dish','${d.id}',this)" title="Delete dish">${trashIcon}</button>
         </div>
       </div>
       ${showVoting ? `
@@ -828,6 +850,36 @@ window.setApprovedDish = async (eventId, newDishId) => {
 window.suggestDishAgain = async (dishId) => {
   await update(ref(db, `dishes/${dishId}`), { status: 'suggested', eventId: null, votes: {} });
   showToast('Dish suggested again.');
+};
+
+// ── DELETE ──
+let deleteTimer = null;
+window.confirmDelete = (type, id, btn) => {
+  clearTimeout(deleteTimer);
+  btn.outerHTML = `<span class="delete-confirm">Delete?
+    <button class="btn-danger" onclick="executeDelete('${type}','${id}')">Yes</button>
+    <button class="btn btn-secondary btn-sm" onclick="renderAll()">No</button>
+  </span>`;
+  deleteTimer = setTimeout(() => renderAll(), 5000);
+};
+
+window.executeDelete = async (type, id) => {
+  clearTimeout(deleteTimer);
+  if (type === 'event') {
+    const oldDishId = state.events[id]?.approvedDishId;
+    if (oldDishId && state.dishes[oldDishId]?.status === 'planned') {
+      await update(ref(db, `dishes/${oldDishId}`), { status: 'suggested', eventId: null });
+    }
+    await remove(ref(db, `events/${id}`));
+    showToast('Event deleted.');
+  } else {
+    const d = state.dishes[id];
+    if (d?.status === 'planned' && d?.eventId) {
+      await update(ref(db, `events/${d.eventId}`), { approvedDishId: null });
+    }
+    await remove(ref(db, `dishes/${id}`));
+    showToast('Dish deleted.');
+  }
 };
 
 // ── TOAST ──
