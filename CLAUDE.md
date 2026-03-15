@@ -41,7 +41,7 @@ A cooking evening.
 |---|---|---|
 | `date` | string | ISO date `YYYY-MM-DD` |
 | `attendees` | `{ [uid]: true }` | Firebase presence map of RSVPs |
-| `approvedDishId` | string \| null | push ID of the approved dish |
+| `plannedDishId` | string \| null | push ID of the planned dish |
 | `createdBy` | string | uid of creator |
 
 **`/dishes/{pushId}`**
@@ -51,12 +51,12 @@ A dish suggestion or history entry.
 | field | type | description |
 |---|---|---|
 | `name` | string | dish name |
-| `status` | enum | `suggested`, `approved`, `cooked`, `discarded` |
+| `status` | enum | `suggested`, `planned`, `cooked`, `discarded` |
 | `recipeUrl` | string | link to recipe, may be empty |
 | `recipeText` | string | pasted recipe text, may be empty |
 | `ingredients` | string | ingredients list, may be empty |
 | `eventId` | string \| null | push ID of assigned event |
-| `votes` | `{ [uid]: true }` | Firebase presence map of voters |
+| `votes` | `{ [uid]: 1 \| -1 }` | Vote map: `1` = upvote, `-1` = downvote. Each user may cast one vote per dish. |
 | `suggestedBy` | string | uid of suggester |
 
 Firebase presence maps (`{ uid: true }`) are used instead of arrays to avoid index conflicts on concurrent writes.
