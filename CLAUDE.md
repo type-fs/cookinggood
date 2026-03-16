@@ -2,7 +2,7 @@
 
 ## What this application is
 
-Kochabend is a single-page web app for a small private group to organise weekly cooking evenings. It runs entirely in the browser with no custom backend. Auth and data storage are handled by Firebase. The app is hosted on GitHub Pages. The entire app is a single `index.html` file with no build step.
+Kochabend is a single-page web app for a small private group to organise weekly cooking evenings. It runs entirely in the browser with no custom backend. Auth and data storage are handled by Firebase. The app is hosted on GitHub Pages. The entire app is a single `index.html` file. The only build step is placeholder substitution for the Firebase config, handled by the GitHub Actions deploy workflow.
 
 ## Tech stack
 
@@ -65,7 +65,7 @@ Firebase presence maps (`{ uid: true }`) are used instead of arrays to avoid ind
 
 Google Sign-In via Firebase popup. After successful sign-in, the app checks `/allowedUsers/{uid}` in the Realtime Database. If the UID is not present, the user is signed out immediately and shown a "not on the guest list" message. This is enforced client-side on every auth state change. For full server-side enforcement, Firebase database rules should also check that `auth.uid` exists in `/allowedUsers`.
 
-The Firebase config is hardcoded as `FIREBASE_CFG` in the script block and is intentionally public. Firebase API keys only identify the project — they do not grant access. All authorization is enforced server-side by Firebase Authentication and database rules.
+The Firebase config is defined as `FIREBASE_CFG` in the script block. In the source repository, the four values are placeholders (`__FIREBASE_API_KEY__`, etc.) that are replaced at build time by the GitHub Actions deploy workflow using repository secrets. The values are still visible in the deployed page source but are absent from the git history. Firebase API keys only identify the project — they do not grant access. All authorization is enforced server-side by Firebase Authentication and database rules.
 
 ## Application state
 
@@ -78,7 +78,28 @@ State is held in a module-level `state` object: `{ events: {}, dishes: {}, users
 
 ## Setup flow
 
-The Firebase config is hardcoded in the script block. On load, Firebase is initialised immediately and the user sees the Google Sign-In screen.
+The `index.html` source contains placeholder strings for the Firebase config. The GitHub Actions deploy workflow (`deploy.yml`) substitutes them with real values from repository secrets before publishing to GitHub Pages. On load, Firebase is initialised immediately and the user sees the Google Sign-In screen.
+
+## Deployment
+
+The app is deployed to GitHub Pages via a GitHub Actions workflow (`.github/workflows/deploy.yml`). On every push to `main`, the workflow:
+
+1. Checks out the repo.
+2. Replaces the four `__FIREBASE_*__` placeholders in `index.html` with values from GitHub Actions secrets.
+3. Uploads the result as a Pages artifact and deploys it.
+
+**Required secrets** (set under Settings → Secrets and variables → Actions):
+
+| Secret name | Example value |
+|---|---|
+| `FIREBASE_API_KEY` | `AIzaSy…` |
+| `FIREBASE_AUTH_DOMAIN` | `your-project.firebaseapp.com` |
+| `FIREBASE_DATABASE_URL` | `https://your-project-default-rtdb.firebaseio.com` |
+| `FIREBASE_PROJECT_ID` | `your-project-id` |
+
+**GitHub Pages source** must be set to "GitHub Actions" (Settings → Pages → Source), not branch deployment.
+
+The config values are visible in the deployed page source (they are not secret — see Auth model) but are absent from the git history.
 
 ## Prototype properties
 
@@ -98,7 +119,8 @@ These are known limitations to address before treating this as production-grade.
 ## File structure
 
 ```
-index.html    ← entire app
-README.md     ← user-facing setup guide
-CLAUDE.md     ← this file
+index.html                        ← entire app
+.github/workflows/deploy.yml      ← GitHub Actions deploy workflow
+README.md                         ← user-facing setup guide
+CLAUDE.md                         ← this file
 ```
