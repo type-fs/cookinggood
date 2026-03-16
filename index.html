@@ -148,7 +148,9 @@
 
     /* ── VOTE ── */
     .dish-card { display: block; }
-    .vote-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    .dish-body { display: flex; gap: 16px; align-items: flex-start; margin-top: 8px; }
+    .dish-body .recipe-text { flex: 1; margin-top: 0; }
+    .vote-rows { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
     .vote-row {
       display: flex; align-items: center; gap: 8px;
     }
@@ -166,10 +168,6 @@
     }
     .vote-count.up { color: var(--olive); }
     .vote-count.down { color: var(--terracotta); }
-    .vote-row-avatars { display: flex; }
-    .vote-row-avatars img { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--card-bg); margin-left: -6px; object-fit: cover; }
-    .vote-row-avatars img:first-child { margin-left: 0; }
-
     .status-pill {
       display: inline-block; padding: 3px 12px; border-radius: 100px;
       font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 8px;
@@ -183,7 +181,7 @@
     .recipe-link:hover { text-decoration: underline; }
     .recipe-text {
       font-size: 13px; color: var(--muted); background: var(--paper); border-radius: 10px;
-      padding: 10px 14px; margin-top: 8px; line-height: 1.6; max-height: 120px; overflow-y: auto; white-space: pre-wrap;
+      padding: 10px 14px; margin-top: 8px; line-height: 1.6; max-height: 200px; overflow-y: auto; white-space: pre-wrap;
     }
 
     /* ── HISTORY ── */
@@ -694,14 +692,26 @@ function renderDishCard(d, showVoting, action) {
         <div class="vote-row">
           <button class="vote-thumb ${myVoteNorm===1?'active-up':''}" onclick="castVote('${d.id}','up')" title="Upvote">&#x1F44D;</button>
           <span class="vote-count up">+${up.length}</span>
-          ${up.length ? `<div class="vote-row-avatars">${up.map(uid => avatar(uid,22)).join('')}</div>` : ''}
         </div>
         <div class="vote-row">
           <button class="vote-thumb ${myVoteNorm===-1?'active-down':''}" onclick="castVote('${d.id}','down')" title="Downvote">&#x1F44E;</button>
           <span class="vote-count down">-${down.length}</span>
-          ${down.length ? `<div class="vote-row-avatars">${down.map(uid => avatar(uid,22)).join('')}</div>` : ''}
         </div>
       </div>` : '';
+
+  // Combine ingredients and recipe text into one block
+  const textParts = [d.ingredients, d.recipeText].filter(Boolean).map(t => esc(t));
+  const recipeTextHtml = textParts.length ? `<div class="recipe-text">${textParts.join('\n\n')}</div>` : '';
+
+  // Build body: recipe text (left) + voting (right) side by side
+  let bodyHtml = '';
+  if (recipeTextHtml && voteHtml) {
+    bodyHtml = `<div class="dish-body">${recipeTextHtml}${voteHtml}</div>`;
+  } else if (recipeTextHtml) {
+    bodyHtml = recipeTextHtml;
+  } else if (voteHtml) {
+    bodyHtml = voteHtml;
+  }
 
   return `
   <div class="card">
@@ -709,10 +719,7 @@ function renderDishCard(d, showVoting, action) {
         <div class="card-label">${label}</div>
         <h3>${esc(d.name)}</h3>
         ${d.recipeUrl ? `<a class="recipe-link" href="${esc(d.recipeUrl)}" target="_blank" rel="noopener">→ Recipe link</a>` : ''}
-        ${d.ingredients ? `<div class="recipe-text" style="max-height:80px">${esc(d.ingredients)}</div>` : ''}
-        ${d.recipeText ? `<div class="recipe-text">${esc(d.recipeText)}</div>` : ''}
-        <span class="status-pill status-${d.status}">${d.status}</span>
-        ${voteHtml}
+        ${bodyHtml}
         <div class="mt-8 gap-8">
           <button class="btn btn-secondary btn-sm" onclick="openEditDish('${d.id}')">Edit</button>
           ${actionBtn}
