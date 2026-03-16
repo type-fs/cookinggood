@@ -147,31 +147,28 @@
     .rsvp-chip.light img { width: 18px; height: 18px; }
 
     /* ── VOTE ── */
-    .dish-card { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; }
-    .vote-controls {
-      display: flex; flex-direction: column; align-items: center; gap: 0;
-      border: 2px solid var(--warm-tan); border-radius: 16px; overflow: hidden;
-      min-width: 52px; background: var(--paper);
+    .dish-card { display: block; }
+    .vote-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    .vote-row {
+      display: flex; align-items: center; gap: 8px;
     }
-    .vote-btn {
-      display: flex; align-items: center; justify-content: center;
-      background: transparent; border: none; cursor: pointer;
-      font-family: 'Nunito', sans-serif; font-size: 18px; color: var(--muted);
-      transition: all 0.2s; width: 100%; padding: 8px 12px;
+    .vote-thumb {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: 2px solid var(--warm-tan); border-radius: 10px;
+      cursor: pointer; font-size: 16px; padding: 4px 8px; transition: all 0.2s;
+      font-family: 'Nunito', sans-serif; min-width: 36px;
     }
-    .vote-btn:hover { color: var(--terracotta); background: rgba(181,99,58,0.06); }
-    .vote-btn.upvoted { color: var(--olive); background: rgba(107,124,74,0.1); }
-    .vote-btn.downvoted { color: var(--terracotta); background: rgba(181,99,58,0.1); }
-    .vote-score {
-      font-size: 18px; font-weight: 600; color: var(--ink); padding: 2px 12px;
-      text-align: center; border-top: 1px solid var(--warm-tan); border-bottom: 1px solid var(--warm-tan);
-      width: 100%; background: var(--card-bg);
+    .vote-thumb:hover { background: rgba(181,99,58,0.06); }
+    .vote-thumb.active-up { background: rgba(107,124,74,0.15); border-color: var(--olive); }
+    .vote-thumb.active-down { background: rgba(181,99,58,0.15); border-color: var(--terracotta); }
+    .vote-count {
+      font-size: 14px; font-weight: 700; min-width: 28px;
     }
-    .vote-score.positive { color: var(--olive); }
-    .vote-score.negative { color: var(--terracotta); }
-    .voter-avatars { display: flex; margin-top: 8px; }
-    .voter-avatars img { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--card-bg); margin-left: -6px; object-fit: cover; }
-    .voter-avatars img:first-child { margin-left: 0; }
+    .vote-count.up { color: var(--olive); }
+    .vote-count.down { color: var(--terracotta); }
+    .vote-row-avatars { display: flex; }
+    .vote-row-avatars img { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--card-bg); margin-left: -6px; object-fit: cover; }
+    .vote-row-avatars img:first-child { margin-left: 0; }
 
     .status-pill {
       display: inline-block; padding: 3px 12px; border-radius: 100px;
@@ -579,8 +576,8 @@ function renderEventCard(ev, isUpcoming) {
       .sort((a,b) => netScore(b) - netScore(a));
     const options = candidates.map(d => {
       const sel = ev.approvedDishId === d.id ? 'selected' : '';
-      const score = netScore(d);
-      const scoreLabel = score ? ` (${score > 0 ? '+' : ''}${score})` : '';
+      const { up, down } = votesByDir(d);
+      const scoreLabel = (up.length || down.length) ? ` (+${up.length} / -${down.length})` : '';
       return `<option value="${d.id}" ${sel}>${esc(d.name)}${scoreLabel}</option>`;
     }).join('');
     dishHtml = `<select class="dish-select" onchange="setApprovedDish('${ev.id}', this.value)">
@@ -671,43 +668,56 @@ function netScore(d) {
   if (!d.votes) return 0;
   return Object.values(d.votes).reduce((sum, v) => sum + (v === true ? 1 : Number(v) || 0), 0);
 }
+function votesByDir(d) {
+  const up = [], down = [];
+  if (!d.votes) return { up, down };
+  for (const [uid, v] of Object.entries(d.votes)) {
+    const n = v === true ? 1 : Number(v) || 0;
+    if (n > 0) up.push(uid);
+    else if (n < 0) down.push(uid);
+  }
+  return { up, down };
+}
 
 function renderDishCard(d, showVoting, action) {
-  const voters = d.votes ? Object.keys(d.votes) : [];
   const myVote = currentUser && d.votes ? (d.votes[currentUser.uid] ?? 0) : 0;
   const myVoteNorm = myVote === true ? 1 : Number(myVote) || 0;
-  const score = netScore(d);
-  const voterAvatars = voters.slice(0,6).map(uid => avatar(uid,22)).join('');
-  const scoreClass = score > 0 ? 'positive' : score < 0 ? 'negative' : '';
+  const { up, down } = votesByDir(d);
   const label = d.status.charAt(0).toUpperCase() + d.status.slice(1);
 
   let actionBtn = '';
   if (action === 'cookAgain')    actionBtn = `<button class="btn btn-secondary btn-sm" onclick="suggestDishAgain('${d.id}')">Cook Again</button>`;
   if (action === 'suggestAgain') actionBtn = `<button class="btn btn-secondary btn-sm" onclick="suggestDishAgain('${d.id}')">Suggest Again</button>`;
 
+  const voteHtml = showVoting ? `
+      <div class="vote-rows">
+        <div class="vote-row">
+          <button class="vote-thumb ${myVoteNorm===1?'active-up':''}" onclick="castVote('${d.id}','up')" title="Upvote">&#x1F44D;</button>
+          <span class="vote-count up">+${up.length}</span>
+          ${up.length ? `<div class="vote-row-avatars">${up.map(uid => avatar(uid,22)).join('')}</div>` : ''}
+        </div>
+        <div class="vote-row">
+          <button class="vote-thumb ${myVoteNorm===-1?'active-down':''}" onclick="castVote('${d.id}','down')" title="Downvote">&#x1F44E;</button>
+          <span class="vote-count down">-${down.length}</span>
+          ${down.length ? `<div class="vote-row-avatars">${down.map(uid => avatar(uid,22)).join('')}</div>` : ''}
+        </div>
+      </div>` : '';
+
   return `
   <div class="card">
     <div class="dish-card">
-      <div>
         <div class="card-label">${label}</div>
         <h3>${esc(d.name)}</h3>
         ${d.recipeUrl ? `<a class="recipe-link" href="${esc(d.recipeUrl)}" target="_blank" rel="noopener">→ Recipe link</a>` : ''}
         ${d.ingredients ? `<div class="recipe-text" style="max-height:80px">${esc(d.ingredients)}</div>` : ''}
         ${d.recipeText ? `<div class="recipe-text">${esc(d.recipeText)}</div>` : ''}
         <span class="status-pill status-${d.status}">${d.status}</span>
-        ${voters.length ? `<div class="voter-avatars mt-8">${voterAvatars}</div>` : ''}
+        ${voteHtml}
         <div class="mt-8 gap-8">
           <button class="btn btn-secondary btn-sm" onclick="openEditDish('${d.id}')">Edit</button>
           ${actionBtn}
           <button class="delete-btn" onclick="confirmDelete('dish','${d.id}',this)" title="Delete dish">${trashIcon}</button>
         </div>
-      </div>
-      ${showVoting ? `
-      <div class="vote-controls">
-        <button class="vote-btn ${myVoteNorm===1?'upvoted':''}" onclick="castVote('${d.id}','up')" title="Upvote">▲</button>
-        <div class="vote-score ${scoreClass}">${score}</div>
-        <button class="vote-btn ${myVoteNorm===-1?'downvoted':''}" onclick="castVote('${d.id}','down')" title="Downvote">▼</button>
-      </div>` : ''}
     </div>
   </div>`;
 }
