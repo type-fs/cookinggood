@@ -2,61 +2,8 @@
 
 A private cooking evening organiser for you and your friends. Hosted on GitHub Pages, data stored in Firebase Realtime Database, authentication via Google Sign-In.
 
-## First-time setup
-
-### 1. Create a Firebase project
-
-Go to [console.firebase.google.com](https://console.firebase.google.com) and create a new project.
-
-### 2. Enable Google Authentication
-
-In your project go to **Authentication → Sign-in method** and enable **Google**.
-
-### 3. Enable Realtime Database
-
-Go to **Build → Realtime Database → Create database**. Start in **locked mode**.
-
-Then go to **Rules** and replace the default rules with:
-
-```json
-{
-  "rules": {
-    ".read":  "auth != null",
-    ".write": "auth != null"
-  }
-}
-```
-
-This ensures only signed-in users can read or write data.
-
-### 4. Register a web app
-
-Go to **Project settings (gear icon) → Your apps → Add app → Web**. Give it a name, skip Firebase Hosting. Copy the `firebaseConfig` values.
-
-### 5. Enable GitHub Pages
-
-In this repo go to **Settings → Pages** and set the source to `main` branch, root folder. The repo can be public since no sensitive data is stored in the source code. Firebase handles all auth.
-
-### 6. Open the app and connect Firebase
-
-Visit your GitHub Pages URL. On first load you will see the Firebase setup screen. Enter the four config values from step 4. They are stored only in your browser's `localStorage`.
-
-### 7. Share with friends
-
-Send your friends the GitHub Pages URL. They will see a Google Sign-In button. No setup required on their end.
-
 ## How it works
 
-- Each person signs in with their Google account. Their display name and profile photo are stored in Firebase under `users/{uid}`.
-- All reads and writes go through the Firebase Realtime Database. Changes sync live across all open browsers.
-- The Firebase config values (API key, project ID etc.) are visible in `localStorage` but are not secret. Firebase API keys identify your project, they do not grant access. Access is controlled by the database rules requiring a valid authenticated session.
-
-## File structure
-
-```
-index.html    ← entire app, single file, no build step
-README.md     ← this file
-CLAUDE.md     ← context document for Claude Code
-```
-
-No `data/` folder. Data lives entirely in Firebase.
+- users create events and suggest dishes
+- suggested dishes can be voted for
+- planned events can be assigned one dish
