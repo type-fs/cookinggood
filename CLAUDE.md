@@ -2,7 +2,7 @@
 
 ## What this application is
 
-Kochabend is a single-page web app for a small private group to organise weekly cooking evenings. It runs entirely in the browser with no custom backend. Auth and data storage are handled by Firebase. The app is hosted on GitHub Pages. The entire app is a single `index.html` file. The only build step is placeholder substitution for the Firebase config, handled by the GitHub Actions deploy workflow.
+Kochabend is a single-page web app for a small private group to organise weekly cooking evenings. It runs entirely in the browser with no custom backend. Auth and data storage are handled by Firebase. The app is hosted on GitHub Pages. The only build step is placeholder substitution for the Firebase config, handled by the GitHub Actions deploy workflow.
 
 ## Tech stack
 
@@ -65,11 +65,11 @@ Firebase presence maps (`{ uid: true }`) are used instead of arrays to avoid ind
 
 Google Sign-In via Firebase popup. After successful sign-in, the app checks `/allowedUsers/{uid}` in the Realtime Database. If the UID is not present, the user is signed out immediately and shown a "not on the guest list" message. This is enforced client-side on every auth state change. For full server-side enforcement, Firebase database rules should also check that `auth.uid` exists in `/allowedUsers`.
 
-The Firebase config is defined as `FIREBASE_CFG` in the script block. In the source repository, the four values are placeholders (`__FIREBASE_API_KEY__`, etc.) that are replaced at build time by the GitHub Actions deploy workflow using repository secrets. The values are still visible in the deployed page source but are absent from the git history. Firebase API keys only identify the project — they do not grant access. All authorization is enforced server-side by Firebase Authentication and database rules.
+The Firebase config is defined as `FIREBASE_CFG` in `js/firebase.js`. In the source repository, the four values are placeholders (`__FIREBASE_API_KEY__`, etc.) that are replaced at build time by the GitHub Actions deploy workflow using repository secrets. The values are still visible in the deployed page source but are absent from the git history. Firebase API keys only identify the project — they do not grant access. All authorization is enforced server-side by Firebase Authentication and database rules.
 
 ## Application state
 
-State is held in a module-level `state` object: `{ events: {}, dishes: {}, users: {} }`. All three nodes are subscribed via `onValue` listeners that fire on any change. Each listener updates the relevant key and calls `renderAll()`. There is no local mutation. All writes go directly to Firebase and trigger re-renders via the subscription.
+State is held in `js/state.js` as a shared `state` object: `{ events: {}, dishes: {}, users: {} }`. All three nodes are subscribed via `onValue` listeners that fire on any change. Each listener updates the relevant key and calls `renderAll()`. There is no local mutation. All writes go directly to Firebase and trigger re-renders via the subscription.
 
 ## Views
 
@@ -85,7 +85,7 @@ The `index.html` source contains placeholder strings for the Firebase config. Th
 The app is deployed to GitHub Pages via a GitHub Actions workflow (`.github/workflows/deploy.yml`). On every push to `main`, the workflow:
 
 1. Checks out the repo.
-2. Replaces the four `__FIREBASE_*__` placeholders in `index.html` with values from GitHub Actions secrets.
+2. Replaces the four `__FIREBASE_*__` placeholders in `js/firebase.js` with values from GitHub Actions secrets.
 3. Uploads the result as a Pages artifact and deploys it.
 
 **Required secrets** (set under Settings → Secrets and variables → Actions):
@@ -119,7 +119,16 @@ These are known limitations to address before treating this as production-grade.
 ## File structure
 
 ```
-index.html                        ← entire app
+index.html                        ← HTML shell (structure + modals)
+styles.css                        ← all CSS
+js/app.js                         ← entry point, renderAll, window bindings, boot
+js/state.js                       ← shared state (auth, db, currentUser, state object)
+js/firebase.js                    ← Firebase config, init, auth state listener, subscriptions
+js/auth.js                        ← sign-in/out, screen switching
+js/utils.js                       ← helpers (esc, avatar, fmtDate, trashIcon, etc.)
+js/render-events.js               ← events tab rendering
+js/render-dishes.js               ← dishes tab rendering, voting
+js/actions.js                     ← modals, save/delete actions, toast
 .github/workflows/deploy.yml      ← GitHub Actions deploy workflow
 README.md                         ← user-facing setup guide
 CLAUDE.md                         ← this file
