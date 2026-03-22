@@ -1,6 +1,6 @@
 import { ref, update, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 import { state, currentUser, db } from './state.js';
-import { dsArr, esc, trashIcon } from './utils.js';
+import { dsArr, esc, isSafeUrl, trashIcon } from './utils.js';
 import { showToast } from './actions.js';
 
 export function netScore(d) {
@@ -99,7 +99,7 @@ function renderDishCard(d, showVoting, action) {
     <div class="dish-card">
         <div class="card-label">${label}</div>
         <h3>${esc(d.name)}</h3>
-        ${d.recipeUrl ? `<a class="recipe-link" href="${esc(d.recipeUrl)}" target="_blank" rel="noopener">→ Recipe link</a>` : ''}
+        ${d.recipeUrl ? (isSafeUrl(d.recipeUrl) ? `<a class="recipe-link" href="${esc(d.recipeUrl)}" target="_blank" rel="noopener">→ Recipe link</a>` : `<span class="recipe-link">${esc(d.recipeUrl)}</span>`) : ''}
         ${bodyHtml}
         <div class="mt-8 gap-8">
           <button class="btn btn-secondary btn-sm" onclick="openEditDish('${d.id}')">Edit</button>
@@ -111,24 +111,29 @@ function renderDishCard(d, showVoting, action) {
 }
 
 export async function castVote(dishId, dir) {
-  const current = state.dishes[dishId]?.votes?.[currentUser.uid];
-  const currentNorm = current === true ? 1 : Number(current) || 0;
-  const target = dir === 'up' ? 1 : -1;
-  if (currentNorm === target) {
-    await remove(ref(db, `dishes/${dishId}/votes/${currentUser.uid}`));
-  } else {
-    await update(ref(db, `dishes/${dishId}/votes`), { [currentUser.uid]: target });
-    if (target === -1 && state.dishes[dishId]?.status === 'suggested') {
-      const userIds = Object.keys(state.users);
-      const votes = { ...state.dishes[dishId]?.votes, [currentUser.uid]: target };
-      const allDownvoted = userIds.length > 0 && userIds.every(uid => {
-        const v = votes[uid];
-        return v === -1 || v === true ? false : (Number(v) || 0) === -1;
-      });
-      if (allDownvoted) {
-        await update(ref(db, `dishes/${dishId}`), { status: 'discarded' });
-        showToast('Everyone vetoed — dish discarded.');
+  try {
+    const current = state.dishes[dishId]?.votes?.[currentUser.uid];
+    const currentNorm = current === true ? 1 : Number(current) || 0;
+    const target = dir === 'up' ? 1 : -1;
+    if (currentNorm === target) {
+      await remove(ref(db, `dishes/${dishId}/votes/${currentUser.uid}`));
+    } else {
+      await update(ref(db, `dishes/${dishId}/votes`), { [currentUser.uid]: target });
+      if (target === -1 && state.dishes[dishId]?.status === 'suggested') {
+        const userIds = Object.keys(state.users);
+        const votes = { ...state.dishes[dishId]?.votes, [currentUser.uid]: target };
+        const allDownvoted = userIds.length > 0 && userIds.every(uid => {
+          const v = votes[uid];
+          return v === -1 || v === true ? false : (Number(v) || 0) === -1;
+        });
+        if (allDownvoted) {
+          await update(ref(db, `dishes/${dishId}`), { status: 'discarded' });
+          showToast('Everyone vetoed — dish discarded.');
+        }
       }
     }
+  } catch (e) {
+    console.error('castVote failed:', e);
+    showToast('Something went wrong.');
   }
 }

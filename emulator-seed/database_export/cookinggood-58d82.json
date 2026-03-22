@@ -1,0 +1,32 @@
+{
+  "events": {
+    "evt1": {
+      "date": "2026-04-01",
+      "attendees": {},
+      "plannedDishId": null,
+      "createdBy": "seed-user"
+    }
+  },
+  "dishes": {
+    "dish1": {
+      "name": "Spaghetti Carbonara",
+      "status": "suggested",
+      "recipeUrl": "",
+      "recipeText": "",
+      "ingredients": "Spaghetti, Guanciale, Eggs, Pecorino, Black pepper",
+      "eventId": null,
+      "votes": {},
+      "suggestedBy": "seed-user"
+    },
+    "dish2": {
+      "name": "Thai Green Curry",
+      "status": "suggested",
+      "recipeUrl": "",
+      "recipeText": "",
+      "ingredients": "Coconut milk, Green curry paste, Chicken, Bamboo shoots, Thai basil",
+      "eventId": null,
+      "votes": {},
+      "suggestedBy": "seed-user"
+    }
+  }
+}

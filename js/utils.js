@@ -5,7 +5,8 @@ export const trashIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentCo
 export const evArr = () => Object.entries(state.events).map(([id, v]) => ({ id, ...v }));
 export const dsArr = () => Object.entries(state.dishes).map(([id, v]) => ({ id, ...v }));
 export const today = () => new Date().toISOString().split('T')[0];
-export const esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+export const esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+export const isSafeUrl = s => /^https?:\/\//i.test(s);
 export const uName = uid => state.users[uid]?.displayName || 'Someone';
 export const uPhoto = uid => state.users[uid]?.photoURL || '';
 

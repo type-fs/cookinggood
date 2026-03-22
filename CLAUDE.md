@@ -41,7 +41,7 @@ A cooking evening.
 |---|---|---|
 | `date` | string | ISO date `YYYY-MM-DD` |
 | `attendees` | `{ [uid]: true }` | Firebase presence map of RSVPs |
-| `plannedDishId` | string \| null | push ID of the planned dish |
+| `approvedDishId` | string \| null | push ID of the approved dish |
 | `createdBy` | string | uid of creator |
 
 **`/dishes/{pushId}`**
@@ -64,6 +64,8 @@ Firebase presence maps (`{ uid: true }`) are used instead of arrays to avoid ind
 ## Auth model
 
 Google Sign-In via Firebase popup. After successful sign-in, the app checks `/allowedUsers/{uid}` in the Realtime Database. If the UID is not present, the user is signed out immediately and shown a "not on the guest list" message. This is enforced client-side on every auth state change. For full server-side enforcement, Firebase database rules should also check that `auth.uid` exists in `/allowedUsers`.
+
+**Local dev exception:** When running on `localhost` (i.e. against Firebase emulators), the `/allowedUsers` check is skipped entirely. Any authenticated emulator user is allowed straight into the app. This avoids the need to seed the emulator database with allowlist entries. Production behaviour is unchanged.
 
 The Firebase config is defined as `FIREBASE_CFG` in `js/firebase.js`. In the source repository, the four values are placeholders (`__FIREBASE_API_KEY__`, etc.) that are replaced at build time by the GitHub Actions deploy workflow using repository secrets. The values are still visible in the deployed page source but are absent from the git history. Firebase API keys only identify the project — they do not grant access. All authorization is enforced server-side by Firebase Authentication and database rules.
 
@@ -101,6 +103,33 @@ The app is deployed to GitHub Pages via a GitHub Actions workflow (`.github/work
 
 The config values are visible in the deployed page source (they are not secret — see Auth model) but are absent from the git history.
 
+## Local development
+
+The app can run entirely on localhost using Firebase emulators. No deploy step or production credentials required.
+
+**Start the emulators:**
+
+```
+firebase emulators:start
+```
+
+This starts the Auth emulator (port 9099), Realtime Database emulator (port 9000), Hosting emulator (port 5000), and Emulator UI (port 4000). The database is pre-loaded with seed data from `emulator-seed/database_export/__FIREBASE_PROJECT_ID__.json` via the `import` setting in `firebase.json`.
+
+**URLs:**
+
+| Service | URL |
+|---|---|
+| App | `http://localhost:5000` |
+| Emulator UI | `http://localhost:4000` |
+
+**Differences from production:**
+
+- The `/allowedUsers` check is skipped on localhost — any authenticated emulator user is allowed into the app (see Auth model).
+- Firebase config uses a dummy API key and localhost URLs. The `isLocal` flag in `js/firebase.js` controls emulator connection and config selection.
+- `renderAll()` is called immediately after `showApp()` so the UI renders empty states without waiting for database subscriptions to fire.
+
+**Seed data** (`emulator-seed/database_export/__FIREBASE_PROJECT_ID__.json`): Contains one upcoming event and two suggested dishes. Edit this file to change the starting state of the emulated database. The emulator imports this data on every start, so changes in the emulator are not persisted across restarts unless you run `firebase emulators:export ./emulator-seed`.
+
 ## Prototype properties
 
 These are known limitations to address before treating this as production-grade.
@@ -130,6 +159,7 @@ js/render-events.js               ← events tab rendering
 js/render-dishes.js               ← dishes tab rendering, voting
 js/actions.js                     ← modals, save/delete actions, toast
 .github/workflows/deploy.yml      ← GitHub Actions deploy workflow
+emulator-seed/                    ← Firebase emulator seed data (imported on start)
 README.md                         ← user-facing setup guide
 CLAUDE.md                         ← this file
 ```

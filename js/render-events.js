@@ -1,7 +1,8 @@
 import { ref, update, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 import { state, currentUser, db } from './state.js';
-import { evArr, dsArr, today, esc, uName, avatar, fmtDate, trashIcon } from './utils.js';
+import { evArr, dsArr, today, esc, isSafeUrl, uName, avatar, fmtDate, trashIcon } from './utils.js';
 import { netScore, votesByDir } from './render-dishes.js';
+import { showToast } from './actions.js';
 
 export function renderEvents() {
   const el = document.getElementById('events-content');
@@ -67,7 +68,7 @@ function renderEventCard(ev, isUpcoming) {
       <div>
         <div class="card-label">${fmtDate(ev.date)}</div>
         ${dishHtml}
-        ${dish?.recipeUrl ? `<a class="recipe-link" href="${esc(dish.recipeUrl)}" target="_blank" rel="noopener">→ Recipe</a>` : ''}
+        ${dish?.recipeUrl ? (isSafeUrl(dish.recipeUrl) ? `<a class="recipe-link" href="${esc(dish.recipeUrl)}" target="_blank" rel="noopener">→ Recipe</a>` : `<span class="recipe-link">${esc(dish.recipeUrl)}</span>`) : ''}
         ${dish?.ingredients ? `<div class="recipe-text" style="max-height:80px">${esc(dish.ingredients)}</div>` : ''}
         ${dish?.recipeText ? `<div class="recipe-text" style="max-height:80px">${esc(dish.recipeText)}</div>` : ''}
         <div class="rsvp-attendees mt-8">${chips || '<span class="text-muted">No attendees yet</span>'}</div>
@@ -84,10 +85,20 @@ function renderEventCard(ev, isUpcoming) {
   </div>`;
 }
 
-export function joinEvent(uid) {
-  update(ref(db, `events/${uid}/attendees`), { [currentUser.uid]: true });
+export async function joinEvent(eventId) {
+  try {
+    await update(ref(db, `events/${eventId}/attendees`), { [currentUser.uid]: true });
+  } catch (e) {
+    console.error('joinEvent failed:', e);
+    showToast('Something went wrong.');
+  }
 }
 
-export function leaveEvent(uid) {
-  remove(ref(db, `events/${uid}/attendees/${currentUser.uid}`));
+export async function leaveEvent(eventId) {
+  try {
+    await remove(ref(db, `events/${eventId}/attendees/${currentUser.uid}`));
+  } catch (e) {
+    console.error('leaveEvent failed:', e);
+    showToast('Something went wrong.');
+  }
 }
