@@ -6,6 +6,7 @@ Kochabend is a single-page web app for a small private group to organise weekly 
 
 ## Tech stack
 
+- **No inline event handlers.** All event wiring uses `addEventListener` or event delegation via `data-action` attributes. The CSP disallows inline scripts; never add `onclick`, `onchange`, or similar attributes to HTML or dynamically generated markup.
 - Vanilla HTML, CSS, JavaScript. No framework, no bundler, no npm.
 - Firebase 10 (ESM via CDN): Authentication, Realtime Database.
 - Google Sign-In via Firebase Auth (popup flow).

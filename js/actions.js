@@ -158,8 +158,8 @@ export function setRenderAll(fn) { _renderAll = fn; }
 export function confirmDelete(type, id, btn) {
   clearTimeout(deleteTimer);
   btn.outerHTML = `<span class="delete-confirm">Delete?
-    <button class="btn-danger" onclick="executeDelete('${type}','${id}')">Yes</button>
-    <button class="btn btn-secondary btn-sm" onclick="renderAll()">No</button>
+    <button class="btn-danger" data-action="executeDelete" data-type="${type}" data-id="${id}">Yes</button>
+    <button class="btn btn-secondary btn-sm" data-action="renderAll">No</button>
   </span>`;
   deleteTimer = setTimeout(() => _renderAll && _renderAll(), 5000);
 }

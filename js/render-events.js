@@ -9,7 +9,7 @@ export function renderEvents() {
   const upcoming = evArr().filter(e => e.date >= today()).sort((a, b) => a.date.localeCompare(b.date));
   const past = evArr().filter(e => e.date < today()).sort((a, b) => b.date.localeCompare(a.date));
 
-  let html = `<div class="action-bar"><button class="btn btn-primary" onclick="openAddEvent()">+ Add Event</button></div>`;
+  let html = `<div class="action-bar"><button class="btn btn-primary" data-action="openAddEvent">+ Add Event</button></div>`;
 
   if (!upcoming.length && !past.length) {
     html += `<div class="empty"><div class="icon">📅</div><p>No events yet. Create the first one!</p></div>`;
@@ -21,7 +21,7 @@ export function renderEvents() {
 
   if (past.length) {
     html += `
-      <button class="expand-toggle" onclick="toggleExpand(this)">
+      <button class="expand-toggle" data-action="toggleExpand">
         <span class="arrow">&#9654;</span> Past events (${past.length})
       </button>
       <div class="expand-content">
@@ -50,7 +50,7 @@ function renderEventCard(ev, isUpcoming) {
       const scoreLabel = (up.length || down.length) ? ` (+${up.length} / -${down.length})` : '';
       return `<option value="${d.id}" ${sel}>${esc(d.name)}${scoreLabel}</option>`;
     }).join('');
-    dishHtml = `<select class="dish-select" onchange="setApprovedDish('${ev.id}', this.value)">
+    dishHtml = `<select class="dish-select" data-action="setApprovedDish" data-event-id="${ev.id}">
       <option value="" ${!ev.approvedDishId ? 'selected' : ''}>— No dish —</option>
       ${options}
     </select>`;
@@ -74,11 +74,11 @@ function renderEventCard(ev, isUpcoming) {
         <div class="rsvp-attendees mt-8">${chips || '<span class="text-muted">No attendees yet</span>'}</div>
         <div class="mt-8 gap-8">
           ${isUpcoming ? `${myRsvp
-            ? `<button class="btn btn-secondary btn-sm" onclick="leaveEvent('${ev.id}')">You're in — Leave</button>`
-            : `<button class="btn btn-primary btn-sm" onclick="joinEvent('${ev.id}')">I'm coming</button>`
+            ? `<button class="btn btn-secondary btn-sm" data-action="leaveEvent" data-id="${ev.id}">You're in — Leave</button>`
+            : `<button class="btn btn-primary btn-sm" data-action="joinEvent" data-id="${ev.id}">I'm coming</button>`
           }` : ''}
-          <button class="btn btn-secondary btn-sm" onclick="openEditEvent('${ev.id}')">Edit</button>
-          <button class="delete-btn" onclick="confirmDelete('event','${ev.id}',this)" title="Delete event">${trashIcon}</button>
+          <button class="btn btn-secondary btn-sm" data-action="openEditEvent" data-id="${ev.id}">Edit</button>
+          <button class="delete-btn" data-action="confirmDelete" data-type="event" data-id="${ev.id}" title="Delete event">${trashIcon}</button>
         </div>
       </div>
     </div>

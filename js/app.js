@@ -30,29 +30,63 @@ export function renderAll() {
 // Give actions.js access to renderAll (for delete confirmation timeout)
 setRenderAll(renderAll);
 
-// ── WINDOW BINDINGS ──
-// These are needed because HTML onclick attributes reference window globals.
-window.signInWithGoogle = signInWithGoogle;
-window.doSignOut = doSignOut;
-window.switchView = switchView;
-window.joinEvent = joinEvent;
-window.leaveEvent = leaveEvent;
-window.castVote = castVote;
-window.openModal = openModal;
-window.closeModal = closeModal;
-window.openAddEvent = openAddEvent;
-window.openEditEvent = openEditEvent;
-window.openSuggestDish = openSuggestDish;
-window.openEditDish = openEditDish;
-window.toggleExpand = toggleExpand;
-window.saveEvent = saveEvent;
-window.saveDish = saveDish;
-window.setApprovedDish = setApprovedDish;
-window.suggestDishAgain = suggestDishAgain;
-window.confirmDelete = confirmDelete;
-window.executeDelete = executeDelete;
-window.showToast = showToast;
-window.renderAll = renderAll;
+// ── STATIC EVENT LISTENERS ──
+// Sign-in button
+document.querySelector('.google-btn').addEventListener('click', signInWithGoogle);
+
+// User chip (sign out)
+document.querySelector('.user-chip').addEventListener('click', doSignOut);
+
+// Nav tabs
+document.querySelector('nav').addEventListener('click', e => {
+  const btn = e.target.closest('[data-view]');
+  if (btn) switchView(btn.dataset.view);
+});
+
+// Modal overlays: close on background click, stop propagation on .modal
+for (const id of ['add-event-modal', 'suggest-dish-modal']) {
+  const overlay = document.getElementById(id);
+  overlay.addEventListener('click', () => closeModal(id));
+  overlay.querySelector('.modal').addEventListener('click', e => e.stopPropagation());
+}
+
+// Modal buttons
+document.getElementById('event-modal-submit').addEventListener('click', saveEvent);
+document.getElementById('event-modal-cancel').addEventListener('click', () => closeModal('add-event-modal'));
+document.getElementById('dish-modal-submit').addEventListener('click', saveDish);
+document.getElementById('dish-modal-cancel').addEventListener('click', () => closeModal('suggest-dish-modal'));
+
+// ── EVENT DELEGATION FOR DYNAMIC CONTENT ──
+const clickActions = {
+  openAddEvent:    () => openAddEvent(),
+  openSuggestDish: () => openSuggestDish(),
+  openEditEvent:   el => openEditEvent(el.dataset.id),
+  openEditDish:    el => openEditDish(el.dataset.id),
+  joinEvent:       el => joinEvent(el.dataset.id),
+  leaveEvent:      el => leaveEvent(el.dataset.id),
+  castVote:        el => castVote(el.dataset.id, el.dataset.dir),
+  suggestDishAgain:el => suggestDishAgain(el.dataset.id),
+  confirmDelete:   el => confirmDelete(el.dataset.type, el.dataset.id, el),
+  executeDelete:   el => executeDelete(el.dataset.type, el.dataset.id),
+  renderAll:       () => renderAll(),
+  toggleExpand:    el => toggleExpand(el),
+};
+
+function handleDelegatedClick(e) {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const handler = clickActions[el.dataset.action];
+  if (handler) handler(el);
+}
+
+function handleDelegatedChange(e) {
+  const el = e.target.closest('[data-action="setApprovedDish"]');
+  if (el) setApprovedDish(el.dataset.eventId, el.value);
+}
+
+document.getElementById('events-content').addEventListener('click', handleDelegatedClick);
+document.getElementById('events-content').addEventListener('change', handleDelegatedChange);
+document.getElementById('dishes-content').addEventListener('click', handleDelegatedClick);
 
 // ── BOOT ──
 boot(FIREBASE_CFG, renderAll);

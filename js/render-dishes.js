@@ -27,7 +27,7 @@ export function renderDishes() {
   const cooked = all.filter(d => d.status === 'cooked');
   const discarded = all.filter(d => d.status === 'discarded');
 
-  let html = `<div class="action-bar"><button class="btn btn-primary" onclick="openSuggestDish()">+ Suggest Dish</button></div>`;
+  let html = `<div class="action-bar"><button class="btn btn-primary" data-action="openSuggestDish">+ Suggest Dish</button></div>`;
 
   if (!all.length) {
     html += `<div class="empty"><div class="icon">🍽️</div><p>No dishes yet. Suggest the first one!</p></div>`;
@@ -49,7 +49,7 @@ export function renderDishes() {
 
   if (discarded.length) {
     html += `
-      <button class="expand-toggle" onclick="toggleExpand(this)">
+      <button class="expand-toggle" data-action="toggleExpand">
         <span class="arrow">&#9654;</span> Discarded (${discarded.length})
       </button>
       <div class="expand-content">
@@ -67,17 +67,17 @@ function renderDishCard(d, showVoting, action) {
   const label = d.status.charAt(0).toUpperCase() + d.status.slice(1);
 
   let actionBtn = '';
-  if (action === 'cookAgain')    actionBtn = `<button class="btn btn-secondary btn-sm" onclick="suggestDishAgain('${d.id}')">Cook Again</button>`;
-  if (action === 'suggestAgain') actionBtn = `<button class="btn btn-secondary btn-sm" onclick="suggestDishAgain('${d.id}')">Suggest Again</button>`;
+  if (action === 'cookAgain')    actionBtn = `<button class="btn btn-secondary btn-sm" data-action="suggestDishAgain" data-id="${d.id}">Cook Again</button>`;
+  if (action === 'suggestAgain') actionBtn = `<button class="btn btn-secondary btn-sm" data-action="suggestDishAgain" data-id="${d.id}">Suggest Again</button>`;
 
   const voteHtml = showVoting ? `
       <div class="vote-rows">
         <div class="vote-row">
-          <button class="vote-thumb ${myVoteNorm === 1 ? 'active-up' : ''}" onclick="castVote('${d.id}','up')" title="Upvote">&#x1F44D;</button>
+          <button class="vote-thumb ${myVoteNorm === 1 ? 'active-up' : ''}" data-action="castVote" data-id="${d.id}" data-dir="up" title="Upvote">&#x1F44D;</button>
           <span class="vote-count up">+${up.length}</span>
         </div>
         <div class="vote-row">
-          <button class="vote-thumb ${myVoteNorm === -1 ? 'active-down' : ''}" onclick="castVote('${d.id}','down')" title="Downvote">&#x1F44E;</button>
+          <button class="vote-thumb ${myVoteNorm === -1 ? 'active-down' : ''}" data-action="castVote" data-id="${d.id}" data-dir="down" title="Downvote">&#x1F44E;</button>
           <span class="vote-count down">-${down.length}</span>
         </div>
       </div>` : '';
@@ -102,9 +102,9 @@ function renderDishCard(d, showVoting, action) {
         ${d.recipeUrl ? (isSafeUrl(d.recipeUrl) ? `<a class="recipe-link" href="${esc(d.recipeUrl)}" target="_blank" rel="noopener">→ Recipe link</a>` : `<span class="recipe-link">${esc(d.recipeUrl)}</span>`) : ''}
         ${bodyHtml}
         <div class="mt-8 gap-8">
-          <button class="btn btn-secondary btn-sm" onclick="openEditDish('${d.id}')">Edit</button>
+          <button class="btn btn-secondary btn-sm" data-action="openEditDish" data-id="${d.id}">Edit</button>
           ${actionBtn}
-          <button class="delete-btn" onclick="confirmDelete('dish','${d.id}',this)" title="Delete dish">${trashIcon}</button>
+          <button class="delete-btn" data-action="confirmDelete" data-type="dish" data-id="${d.id}" title="Delete dish">${trashIcon}</button>
         </div>
     </div>
   </div>`;

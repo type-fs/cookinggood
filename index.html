@@ -23,7 +23,7 @@
     <div class="login-card">
       <div class="logo">Koch<em>abend</em></div>
       <div class="tagline">Every week, something delicious.<br>Sign in to join your group.</div>
-      <button class="google-btn" onclick="signInWithGoogle()">
+      <button class="google-btn">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
           <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -37,21 +37,21 @@
 </div>
 
 <!-- Add / Edit Event modal -->
-<div class="modal-overlay hidden" id="add-event-modal" onclick="closeModal('add-event-modal')">
-  <div class="modal" onclick="event.stopPropagation()">
+<div class="modal-overlay hidden" id="add-event-modal">
+  <div class="modal">
     <h2 id="event-modal-title">Add Event</h2>
     <p>Pick a date for the next cooking evening.</p>
     <div class="form-group"><label>Date</label><input type="date" id="new-event-date" /></div>
     <div class="mt-16 gap-8">
-      <button class="btn btn-primary" id="event-modal-submit" onclick="saveEvent()">Add Event</button>
-      <button class="btn btn-secondary" onclick="closeModal('add-event-modal')" style="margin-left:8px">Cancel</button>
+      <button class="btn btn-primary" id="event-modal-submit">Add Event</button>
+      <button class="btn btn-secondary" id="event-modal-cancel" style="margin-left:8px">Cancel</button>
     </div>
   </div>
 </div>
 
 <!-- Suggest / Edit Dish modal -->
-<div class="modal-overlay hidden" id="suggest-dish-modal" onclick="closeModal('suggest-dish-modal')">
-  <div class="modal" onclick="event.stopPropagation()">
+<div class="modal-overlay hidden" id="suggest-dish-modal">
+  <div class="modal">
     <h2 id="dish-modal-title">Suggest a Dish</h2>
     <p>Propose something delicious for the group.</p>
     <div class="form-group"><label>Dish name</label><input type="text" id="new-dish-name" placeholder="e.g. Pasta e Fagioli" /></div>
@@ -59,8 +59,8 @@
     <div class="form-group"><label>Ingredients (optional)</label><textarea id="new-dish-ingredients" placeholder="List ingredients…" style="min-height:60px"></textarea></div>
     <div class="form-group"><label>Recipe text (optional)</label><textarea id="new-dish-text" placeholder="Steps, notes…"></textarea></div>
     <div class="mt-16 gap-8">
-      <button class="btn btn-primary" id="dish-modal-submit" onclick="saveDish()">Suggest Dish</button>
-      <button class="btn btn-secondary" onclick="closeModal('suggest-dish-modal')" style="margin-left:8px">Cancel</button>
+      <button class="btn btn-primary" id="dish-modal-submit">Suggest Dish</button>
+      <button class="btn btn-secondary" id="dish-modal-cancel" style="margin-left:8px">Cancel</button>
     </div>
   </div>
 </div>
@@ -73,7 +73,7 @@
         <div class="eyebrow">every week, something delicious</div>
         <h1>Koch<em>abend</em></h1>
       </div>
-      <div class="user-chip" onclick="doSignOut()" title="Click to sign out">
+      <div class="user-chip" title="Click to sign out">
         <img id="user-avatar" src="" alt="" />
         <div>
           <div class="user-name" id="user-display-name"></div>
@@ -83,8 +83,8 @@
     </header>
 
     <nav>
-      <button class="active" data-view="events" onclick="switchView('events')">Events</button>
-      <button data-view="dishes" onclick="switchView('dishes')">Dishes</button>
+      <button class="active" data-view="events">Events</button>
+      <button data-view="dishes">Dishes</button>
     </nav>
 
     <div class="view active" id="view-events">
